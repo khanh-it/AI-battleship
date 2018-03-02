@@ -19,10 +19,12 @@ require_once '../lib/battleship/board.php';
     <link href="css/style.css" rel="stylesheet">
     <script type="text/javascript" src="js/lib/jquery-1.12.4.min.js"></script>
     <script type="text/javascript" src="css/lib/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="js/script.js"></script>
 </head>
 <body>
 	<div id="body" class="container-fluid">
+		<p>
+			<button id="btn-start_new_game" class="btn btn-sm btn-default">Start new game</button>
+		</p>
     	<table id="grids" class="table table-striped table-bordered table-condensed">
     	<?php for ($row = 1; $row <= Board::ROWS; $row++): ?>
     		<tr class="row-<?php echo $row; ?>">
@@ -37,6 +39,7 @@ require_once '../lib/battleship/board.php';
         	</tr>
     	<?php endfor; ?>
     	</table>
-	</div>    	
+	</div>
+	<script type="text/javascript" src="js/script.js"></script>
 </body>
 </html>

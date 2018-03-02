@@ -8,7 +8,7 @@ class Ship {
      * Aircraft Carrier
      * @var string
      */
-    const TYPE_AIRCRAFT = 'Aircraft Carrier';
+    const TYPE_AIRCRAFT = 'Aircraft';
     
     /**
      * Battleship
@@ -49,6 +49,16 @@ class Ship {
      * @var integer
      */
     protected $_rows = 0;
+	
+	/**
+     * @var integer
+     */
+    protected $_x = 1;
+    
+    /**
+     * @var integer
+     */
+    protected $_y = 1;
 
     /**
      * 
@@ -79,5 +89,45 @@ class Ship {
         $this->_type = $type;
         $this->_cols = $cols;
         $this->_rows = $rows;
+		
+		// Set pos?
+		$this->setPos($options['x'], $options['y']);
     }
+	
+	/**
+     * 
+     */
+	public function getType() {
+		return $this->_type;
+	}
+	
+	/**
+     * 
+     * @param string $type
+     * @param array $options
+     */
+	public function setPos($x, $y = null) {
+		if (is_numeric($x) && $x >= 0) {
+			$this->_x = abs(intval($x));
+		}
+		if (is_numeric($y) && $y >= 0) {
+			$this->_y = abs(intval($y));
+		}
+	}
+	
+	public function getPos() {
+		return array(
+			$this->_x, $this->_y
+		);
+	}
+	
+	public function toArr() {
+		return array(
+			'type' => $this->_type,
+			'cols' => $this->_cols,
+			'rows' => $this->_rows,
+			'x' => $this->_x,
+			'y' => $this->_y
+		);
+	}
 }
