@@ -1,0 +1,17 @@
+@CHARSET "UTF-8";
+
+#body{
+	padding: 6px;
+}
+#grids{
+	width: 640px; max-width: 100%;
+}
+#grids td div{
+	position: relative;
+}
+#grids td > div > small{
+	position: absolute;
+    left: -4px;
+    top: -4px;
+    font-size: 10px;
+}
