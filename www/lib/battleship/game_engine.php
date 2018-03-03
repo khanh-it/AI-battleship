@@ -36,8 +36,8 @@ class GameEngine {
             'type' => $request['type'],
             'data' => $request['data']
         );
-    }
-	
+	}
+
 	/**
      * 
      */
@@ -45,6 +45,13 @@ class GameEngine {
 		header('text/json');
 		$json = json_encode($data);
 		die($json);
+	}
+	
+	/**
+     * 
+     */
+	public static function response($data) {
+		return static::resJSON($data);
 	}
     
     /**
@@ -65,7 +72,7 @@ class GameEngine {
 				break;
 		}
 		//
-		static::resJSON($this->_response);
+		static::response($this->_response);
     }
 	
 	/**
@@ -95,6 +102,6 @@ class GameEngine {
 		}
 		
 		$this->_response['data'] = $resData;
-		return static::resJSON($this->_response);
+		return static::response($this->_response);
 	}
 }

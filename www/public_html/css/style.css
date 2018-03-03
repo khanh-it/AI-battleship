@@ -1,17 +1,36 @@
-@CHARSET "UTF-8";
-
 #body{
 	padding: 6px;
 }
 #grids{
 	width: 640px; max-width: 100%;
 }
-#grids td div{
+#grids table td div{
 	position: relative;
 }
-#grids td > div > small{
+#grids table td > div > small{
 	position: absolute;
     left: -4px;
     top: -4px;
     font-size: 10px;
+}
+#grids table td[data-ship] {
+	border: solid 1px #666;
+}
+#grids table td[data-ship="Aircraft"] {
+	background-color: saddlebrown;
+}
+#grids table td[data-ship="Battleship"] {
+	background-color: slateblue;
+}
+#grids table td[data-ship="Submarine"] {
+	background-color: steelblue;
+}
+#grids table td[data-ship="Cruiser"] {
+	background-color: tomato;
+}
+#grids table td[data-ship="Aircraft"] {
+	background-color: violet;
+}
+#grids table td[data-ship="Destroyer"] {
+	background-color: yellowgreen;
 }

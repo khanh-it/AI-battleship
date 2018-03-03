@@ -70,18 +70,28 @@ class Ship {
         switch ($type) {
             case static::TYPE_AIRCRAFT:
                 $rows = 5;
+                $options['x'] = 2;
+                $options['y'] = 2;
                 break;
             case static::TYPE_BATTLESHIP:
                 $rows = 4;
+                $options['x'] = 6;
+                $options['y'] = 3;
                 break;
             case static::TYPE_CRUISER:
                 $rows = 3;
+                $options['x'] = 3;
+                $options['y'] = 19;
                 break;
             case static::TYPE_SUBMARINE:
                 $rows = 3;
+                $options['x'] = 5;
+                $options['y'] = 14;
                 break;
             case static::TYPE_DESROYER:
                 $rows = 2;
+                $options['x'] = 6;
+                $options['y'] = 22;
                 break;
             default:
                 throw new Exception('Ship type is unknown!');

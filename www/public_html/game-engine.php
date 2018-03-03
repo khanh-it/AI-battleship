@@ -25,20 +25,7 @@ require_once '../lib/battleship/board.php';
 		<p>
 			<button id="btn-start_new_game" class="btn btn-sm btn-default">Start new game</button>
 		</p>
-    	<table id="grids" class="table table-striped table-bordered table-condensed">
-    	<?php for ($row = 1; $row <= Board::ROWS; $row++): ?>
-    		<tr class="row-<?php echo $row; ?>">
-        	<?php for ($col = 1; $col <= Board::COLS; $col++): ?>
-            	<td class="text-center col-<?php echo $col; ?>">
-            		<div>
-                		<small><?php echo "{$row} x {$col}"; ?></small>
-                		<span>&nbsp;</span>
-            		</div>
-            	</td>
-        	<?php endfor; ?>
-        	</tr>
-    	<?php endfor; ?>
-    	</table>
+    	<div id="grids" class="clearfix"></div>
 	</div>
 	<script type="text/javascript" src="js/script.js"></script>
 </body>
