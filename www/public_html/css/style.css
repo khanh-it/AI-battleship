@@ -2,15 +2,23 @@
 	padding: 6px;
 }
 #grids{
-	width: 640px; max-width: 100%;
+	max-width: 100%;
+}
+#grids table {
+	width: auto;
+}
+#grids table td{
+	padding: 0;
 }
 #grids table td div{
 	position: relative;
+	width: 40px;
+	height: 30px;
 }
 #grids table td > div > small{
 	position: absolute;
-    left: -4px;
-    top: -4px;
+    left: 1px;
+    top: 1px;
     font-size: 10px;
 }
 #grids table td[data-ship] {

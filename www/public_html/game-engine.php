@@ -10,7 +10,7 @@ require_once '../lib/battleship/board.php';
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>EVA AIHACKATHON</title>
+    <title>EVA AI HACKATHON</title>
     <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
@@ -24,6 +24,7 @@ require_once '../lib/battleship/board.php';
 	<div id="body" class="container-fluid">
 		<p>
 			<button id="btn-start_new_game" class="btn btn-sm btn-default">Start new game</button>
+            <button id="btn-shoot" class="btn btn-sm btn-primary">Shoot</button>
 		</p>
     	<div id="grids" class="clearfix"></div>
 	</div>

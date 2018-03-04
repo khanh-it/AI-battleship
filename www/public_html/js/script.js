@@ -7,11 +7,23 @@
 	 |
 	 |
 	 */
-	var Board = Board || {
-		// Num of cols
-		COLS: 8,
-		// Num of rows
-		ROWS: 25,
+	function Board(type, options) {
+		if (!(this instanceof Board)) {
+			return new Board(type, options);
+		}
+		// Format options
+		this._options = options = (typeof options == 'object' ? options : {});
+		// Type?
+		type = (Board.TYPE_L == type) ? type : Board.TYPE_P;
+		if (Board.TYPE_P == type) {
+			this.cols = 8;
+			this.rows = 25;
+		} else {
+			this.cols = 25;
+			this.rows = 8;
+		}
+	};
+	Board.prototype = {
 		/**
 		 | Init board (render board with cols and rows)
 		 */
@@ -19,14 +31,11 @@
 		/**
 		 | Init board (render board with cols and rows)
 		 */
-		init: function render(container, options) {
-			// Format options
-			this._options = options = (typeof options == 'object' ? options : {});
-			// #end
+		init: function render(container) {
 			var html = '<table class="table table-striped table-bordered table-condensed">';
-			for (var row = 1; row <= this.ROWS; row++) {
+			for (var row = 1; row <= this.rows; row++) {
 				html += '<tr class="row' + row + '">';
-				for (var col = 1; col <= this.COLS; col++) {
+				for (var col = 1; col <= this.cols; col++) {
 					html += '<td class="text-center col' + col + '"><div>';
 					html += 	'<small>' + (row + ':' + col) + '</small>';
 					html += 	'<span>&nbsp;</span>';
@@ -64,6 +73,8 @@
 			}
 		}
 	};
+	Board.TYPE_P = 0; //
+	Board.TYPE_L = 1; //
 	window.Board = Board;
 
 	/**
@@ -85,7 +96,14 @@
 		 | @param Bot
 		 */
 		call: function call(type, data, cb) {
-			$.post('/', { type: type, data: data }, cb, 'json');
+			cb = cb || $.noop;
+			$.post('/', { type: type, data: data }, function(){
+				if (result && (1 * result.status)) {
+					cb(null, result.data);
+				} else {
+					cb(new Error(result.msg));
+				}
+			}, 'json');
 		},
 		
 		/**
@@ -105,6 +123,11 @@
 	 */
 	var GE = GE || {
 		/**
+		 | @var Board
+		 */
+		_board: null,
+
+		/**
 		 | @var Bot
 		 */
 		_botAlpha: null,
@@ -113,37 +136,59 @@
 		 | @var Bot
 		 */
 		_botBeta: null,
+
+		requestShoot: function requestShoot() {
+			this._botBeta.shoot();
+		},
 		
 		/**
 		 | 
 		 */
-		initGame: function initGame() {
+		initGame: function initGame(container, cb) {
+			// Format cb
+			cb = cb || $.noop;
+			// Init, + render board
+			var board = this._board = new Board();
+			board.init(container);
+			// #end
+
 			var botAlpha = this._botAlpha = new Bot();
-			botAlpha.init(function(result){
-				console.log('botAlpha init done: ', result);
+			var botBeta = this._botBeta = new Bot();
+			//
+			botAlpha.init(function(err, data){
+				console.log('botAlpha init done: ', err, data);
 				// OK?
-				if (result && (1 * result.status)) {
-					var data = result.data || {};
+				if (!err) {
 					// Render ships?
-					Board.renderShips(data.ships)
+					board.renderShips(data.ships)
+					// 
+					botBeta.init(function(err, data){
+						console.log('botBeta init done: ', err, data);
+						// OK?
+						if (!err) {
+							cb(); // Fire callback
+						}
+					});
 				}
 			});
-			
-			var botBeta = this._botBeta = new Bot();
-			botBeta.init();
 		}
 	};
 
-	// Render board
-	$grids = $('#grids');
-	Board.init($grids.get(0));
-
 	// Start game?!
-	$btnStartNewGame = $('#btn-start_new_game');
+	var $grids = $('#grids');
+	var $btnStartNewGame = $('#btn-start_new_game');
+	var $btnShoot = $('#btn-shoot');
+
 	$btnStartNewGame.click(function(){
-		GE.initGame();	
+		GE.initGame($grids.get(0), function(){
+			//
+			$btnShoot.off('click').on('click', function(evt){
+				GE.requestShoot();
+			});
+			// #end
+		});
 	});
 	setTimeout(function(){
 		$btnStartNewGame.click();
-	}, 512);
+	}, 368);
 })(jQuery);
