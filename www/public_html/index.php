@@ -17,8 +17,11 @@ set_include_path(implode(PATH_SEPARATOR, array(
 )));
 
 //
-require_once('battleship/game_engine.php');
+require_once('battleship/battleship.php');
 
 //
-$GE = new GameEngine();
-$GE->resolveRequest();
+$battleship = new Battleship(array(
+    'data_dir' => DATA_DIR, //
+));
+$battleship->resolveRequest();
+

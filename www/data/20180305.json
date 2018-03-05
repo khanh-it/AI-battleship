@@ -1,0 +1,1 @@
+{"board":{"type":0,"cols":8,"rows":25,"shoots":{"3":{"18":0},"5":{"14":0},"6":{"21":0}},"opponents_shoots":[]},"ships":[{"type":"Aircraft","cols":1,"rows":5,"x":2,"y":2},{"type":"Battleship","cols":1,"rows":4,"x":6,"y":3},{"type":"Submarine","cols":1,"rows":3,"x":5,"y":14},{"type":"Cruiser","cols":1,"rows":3,"x":3,"y":19},{"type":"Destroyer","cols":1,"rows":2,"x":6,"y":22}]}

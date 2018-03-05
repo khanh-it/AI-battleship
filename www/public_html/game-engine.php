@@ -23,8 +23,8 @@ require_once '../lib/battleship/board.php';
 <body>
 	<div id="body" class="container-fluid">
 		<p>
-			<button id="btn-start_new_game" class="btn btn-sm btn-default">Start new game</button>
-            <button id="btn-shoot" class="btn btn-sm btn-primary">Shoot</button>
+			<button id="btn-new_game" class="btn btn-sm btn-default">New game</button>
+            <button id="btn-shoot" class="btn btn-sm btn-danger disabled">Shoot</button>
 		</p>
     	<div id="grids" class="clearfix"></div>
 	</div>

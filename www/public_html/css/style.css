@@ -21,8 +21,22 @@
     top: 1px;
     font-size: 10px;
 }
+#grids table td[data-shoot] {
+	border: dashed 2px red;
+	color: red;
+}
+#grids table td[data-shoot] > div::after {
+	content: 'x';
+	margin: 7px auto;
+	display: inline-block;
+	font-weight: bold;
+}
 #grids table td[data-ship] {
 	border: solid 1px #666;
+}
+#grids table td[data-ship][data-shoot] {
+	border: dashed 2px green;
+	color: green;
 }
 #grids table td[data-ship="Aircraft"] {
 	background-color: saddlebrown;

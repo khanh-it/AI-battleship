@@ -38,7 +38,6 @@
 				for (var col = 1; col <= this.cols; col++) {
 					html += '<td class="text-center col' + col + '"><div>';
 					html += 	'<small>' + (row + ':' + col) + '</small>';
-					html += 	'<span>&nbsp;</span>';
 					html += '</div></td>';
 				}
 				html += '</tr>';
@@ -71,6 +70,45 @@
 					}
 				}
 			}
+		},
+		/**
+		 | Render shoots
+		 | @param Array shoots
+		 */
+		renderShoots: function renderShoots(shoots) {
+			var shoot = null, cnt = 0, $td = null;
+			for (var x in (shoots || {})) {
+				shoot = shoots[x];
+				for (var y in (shoot || {})) {
+					cnt = 1 * shoot[y];
+					$td = this._styleTdShoot(x, y);
+				}
+			}
+		},
+		/**
+		 | 
+		 */
+		shootAt: function shootAt(data) {
+			var isHit = false;
+			var $td = this._styleTdShoot(data.x, data.y);
+			if ($td && $td.length) {
+				isHit = !!$.trim($td.attr('data-ship'));
+			}
+			console.log('shootAt # isHit: ', isHit);
+			return isHit;
+		},
+		/**
+		 | 
+		 */
+		_styleTdShoot: function shootAt(x, y) {
+			var slt = 'tr.row' + y + ' > td.col' + x;
+			var $td = this._$board.find(slt);
+			if ($td && $td.length) {
+				var shootCnt = (1 * ($td.attr('data-shoot') || 0)) + 1;
+				$td.attr('data-shoot', shootCnt);
+			}
+			console.log('_styleTdShoot # slt: ', slt, ' - $td: ',  $td.get(0));
+			return $td;
 		}
 	};
 	Board.TYPE_P = 0; //
@@ -97,7 +135,7 @@
 		 */
 		call: function call(type, data, cb) {
 			cb = cb || $.noop;
-			$.post('/', { type: type, data: data }, function(){
+			$.post('/', { type: type, data: data }, function(result){
 				if (result && (1 * result.status)) {
 					cb(null, result.data);
 				} else {
@@ -105,15 +143,26 @@
 				}
 			}, 'json');
 		},
-		
 		/**
 		 | 
 		 */
 		init: function init(cb) {
 			// 
-			this.call('start_new_game', {
+			this.call('new_game', {
 				name: this.name
 			}, cb);
+		},
+		/**
+		 | 
+		 */
+		shoot: function shoot(cb) {
+			this.call('shoot', {}, cb);
+		}, 
+		/**
+		 | 
+		 */
+		shootAt: function shootAt(data, isHit) {
+			this.call('shootAt', {}, cb);
 		}
 	};
 
@@ -121,7 +170,7 @@
 	 | Game Engine simulator
 	 |
 	 */
-	var GE = GE || {
+	var Battleship = Battleship || {
 		/**
 		 | @var Board
 		 */
@@ -130,21 +179,16 @@
 		/**
 		 | @var Bot
 		 */
-		_botAlpha: null,
+		_bot: null,
 		
-		/**
-		 | @var Bot
-		 */
-		_botBeta: null,
-
 		requestShoot: function requestShoot() {
-			this._botBeta.shoot();
+			this._bot.shoot();
 		},
 		
 		/**
 		 | 
 		 */
-		initGame: function initGame(container, cb) {
+		init: function init(container, cb) {
 			// Format cb
 			cb = cb || $.noop;
 			// Init, + render board
@@ -152,43 +196,69 @@
 			board.init(container);
 			// #end
 
-			var botAlpha = this._botAlpha = new Bot();
-			var botBeta = this._botBeta = new Bot();
+			var bot = this._bot = new Bot();
 			//
-			botAlpha.init(function(err, data){
-				console.log('botAlpha init done: ', err, data);
+			bot.init(function(err, data){
+				console.log('bot init done: ', err, data);
 				// OK?
 				if (!err) {
-					// Render ships?
-					board.renderShips(data.ships)
-					// 
-					botBeta.init(function(err, data){
-						console.log('botBeta init done: ', err, data);
-						// OK?
-						if (!err) {
-							cb(); // Fire callback
-						}
-					});
+					// Render board data!
+					board.renderShips(data.ships);
+					board.renderShoots(data.shoots);
 				}
+				// Fire callback
+				cb();
+			});
+		},
+		
+		/**
+		 | 
+		 */
+		shoot: function shoot(cb) {
+			cb = cb || $.noop;
+			this._bot.shoot(function(err, data){
+				if (err) {
+					return alert(err);
+				}
+				//
+				var isHit = Battleship._board.shootAt(data);
+				//
+				// this._bot.shootAt(data, isHit);
+				// Fire callback
+				cb();
 			});
 		}
 	};
-
-	// Start game?!
+	
+	// Init elements
 	var $grids = $('#grids');
-	var $btnStartNewGame = $('#btn-start_new_game');
+	var $btnNewGame = $('#btn-new_game');
 	var $btnShoot = $('#btn-shoot');
 
-	$btnStartNewGame.click(function(){
-		GE.initGame($grids.get(0), function(){
+	// Start game?!
+	function NewGame(){
+		/* if (!confirm('Start new game?')) {
+			return;
+		} */
+		Battleship.init($grids.get(0), function(){
 			//
-			$btnShoot.off('click').on('click', function(evt){
-				GE.requestShoot();
-			});
+			$btnShoot
+				.removeClass('disabled')
+				.off('click').on('click', function(evt){
+					if ($btnShoot.hasClass('disabled')) {
+						return;
+					}
+					$btnShoot.addClass('disabled');
+					Battleship.shoot(function(){
+						$btnShoot.removeClass('disabled');
+					});
+				})
+			;
 			// #end
 		});
-	});
-	setTimeout(function(){
-		$btnStartNewGame.click();
-	}, 368);
+	};
+	
+	//
+	$btnNewGame.click(function(){ NewGame(); });
+	setTimeout(NewGame, 368);
 })(jQuery);
