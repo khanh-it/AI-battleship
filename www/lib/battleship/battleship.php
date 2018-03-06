@@ -51,8 +51,9 @@ class Battleship {
 	/**
 	 * @return string
 	 */
-	public static function getLastSaveGameID() {
-	    $ID = date('Ymd');
+	public static function getGameSessionID() {
+	    $ID = trim($_REQUEST['data']['sessionid']);
+	    $ID = $ID ?: date('Ymd');
 	    // $ID .= date('_H');
 	    /* $i = date('i'); // minutes
 	    if ($i >= 30) {
@@ -107,7 +108,9 @@ class Battleship {
 	    
 	    // @TODO: init and place ships?
 	    $this->_ships = array(
-	        new Ship(Ship::TYPE_AIRCRAFT),
+	        new Ship(Ship::TYPE_AIRCRAFT, array(
+	            'direction' => Ship::DIREC_L
+	        )),
 	        new Ship(Ship::TYPE_BATTLESHIP),
 	        new Ship(Ship::TYPE_SUBMARINE),
 	        new Ship(Ship::TYPE_CRUISER),
@@ -135,9 +138,13 @@ class Battleship {
 			case 'new_game':
 				$this->_newGame($request['data']);
 				break;
-			// Fire
+			// Our shoot
 			case 'shoot':
 			    $this->_shoot($request['data']);
+			    break;
+            // Their shoot
+			case 'shoot_at':
+			    $this->_shootAt($request['data']);
 			    break;
 		}
 		//
@@ -152,9 +159,9 @@ class Battleship {
         // Format data
         $data = (array)(is_null($data) ? $this->_data : $data);
         // Save (replace) data
-        $saveGameID = static::getLastSaveGameID();
+        $saveGameID = static::getGameSessionID();
         $filename = "{$this->_data_dir}{$saveGameID}.json";
-        file_put_contents($filename, json_encode($data/*, JSON_FORCE_OBJECT*/));
+        file_put_contents($filename, json_encode($data, JSON_PRETTY_PRINT /*JSON_FORCE_OBJECT*/));
         return $this;
     }
     
@@ -163,7 +170,7 @@ class Battleship {
      * @return array
      */
     protected function _loadGameData() {
-        $saveGameID = static::getLastSaveGameID();
+        $saveGameID = static::getGameSessionID();
         $filename = "{$this->_data_dir}{$saveGameID}.json";
         $json = trim(@file_get_contents($filename));
         return $this->_data = (array)(@json_decode($json, true));
@@ -225,7 +232,17 @@ class Battleship {
 	 */
 	protected function _shoot($data) {
 	    // Request fire
-	    $resData = $this->_board->shoot();
+	    $resData = $this->_board->shoot($data);
+	    //
+	    return $this->response($resData);
+	}
+	
+	/**
+	 *
+	 */
+	protected function _shootAt($data) {
+	    // Request fire
+	    $resData = $this->_board->shootAt($data);
 	    //
 	    return $this->response($resData);
 	}

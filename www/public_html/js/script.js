@@ -4,6 +4,11 @@
  */
 (function($){
 	/**
+	 | @var string
+	 */
+	var SESSID = (new Date()).toISOString().substring(0, 10);
+
+	/**
 	 |
 	 |
 	 */
@@ -14,12 +19,12 @@
 		// Format options
 		this._options = options = (typeof options == 'object' ? options : {});
 		// Type?
-		type = (Board.TYPE_L == type) ? type : Board.TYPE_P;
+		type = (Board.TYPE_P == type) ? type : Board.TYPE_L;
 		if (Board.TYPE_P == type) {
 			this.cols = 8;
-			this.rows = 25;
+			this.rows = 20;
 		} else {
-			this.cols = 25;
+			this.cols = 20;
 			this.rows = 8;
 		}
 	};
@@ -50,23 +55,18 @@
 		 | @param Array ships
 		 */
 		renderShips: function renderShips(ships) {
-			var ship = null;
-			for (var i in (ships || [])) {
-				this.renderShip(ships[i]);
-			}
-		},
-		/**
-		 | Render ship
-		 | @param object ship
-		 */
-		renderShip: function renderShip(ship) {
-			if (ship) {
-				for (var col = 0; col < ship.cols; col++) {
-					for (var row = 0; row < ship.rows; row++) {
+			ships = (ships instanceof Array) ? ships : [ships];
+			for (var ship of (ships || [])) {
+				var vector = []; var num = 0;
+				for (var row = 0; row < ship.matrix.length; row++) {
+					vector = ship.matrix[row];
+					for (var col = 0; col < vector.length; col++) {
+						num = vector[col];
+						if (!num) { continue; }
 						var slt = 'tr.row' + (ship.y + row) + ' > td.col' + (ship.x + col);
 						var $td = this._$board.find(slt);
 						$td.attr('data-ship', (ship.name || ship.type));
-						console.log('slt: ', slt, ' - $td: ',  $td.get(0));
+						// console.log('slt: ', slt, ' - $td: ',  $td.get(0));
 					}
 				}
 			}
@@ -94,7 +94,7 @@
 			if ($td && $td.length) {
 				isHit = !!$.trim($td.attr('data-ship'));
 			}
-			console.log('shootAt # isHit: ', isHit);
+			console.log('shootAt # data: ', data, ' - isHit: ', isHit);
 			return isHit;
 		},
 		/**
@@ -122,8 +122,6 @@
 	function Bot(options) {
 		// Format options
 		this._options = options = (typeof options == 'object' ? options : {});
-		// +++
-		this.name = options.name || ('Bot_' + (Math.random() + Date.now()));
 		// #end
 		if (!(this instanceof Bot)) {
 			return new Bot(options);
@@ -135,6 +133,7 @@
 		 */
 		call: function call(type, data, cb) {
 			cb = cb || $.noop;
+			data = $.extend({ sessionid: SESSID }, data);
 			$.post('/', { type: type, data: data }, function(result){
 				if (result && (1 * result.status)) {
 					cb(null, result.data);
@@ -146,11 +145,9 @@
 		/**
 		 | 
 		 */
-		init: function init(cb) {
-			// 
-			this.call('new_game', {
-				name: this.name
-			}, cb);
+		init: function init(data, cb) {
+			data = typeof data == 'object' ? data : {};
+			this.call('new_game', {}, cb);
 		},
 		/**
 		 | 
@@ -162,7 +159,8 @@
 		 | 
 		 */
 		shootAt: function shootAt(data, isHit) {
-			this.call('shootAt', {}, cb);
+			data = $.extend({ 'is_hit': 1 * isHit }, data); 
+			this.call('shoot_at', data);
 		}
 	};
 
@@ -181,6 +179,9 @@
 		 */
 		_bot: null,
 		
+		/**
+		 | @var Bot
+		 */
 		requestShoot: function requestShoot() {
 			this._bot.shoot();
 		},
@@ -198,7 +199,7 @@
 
 			var bot = this._bot = new Bot();
 			//
-			bot.init(function(err, data){
+			bot.init({}, function(err, data){
 				console.log('bot init done: ', err, data);
 				// OK?
 				if (!err) {
@@ -216,6 +217,7 @@
 		 */
 		shoot: function shoot(cb) {
 			cb = cb || $.noop;
+			var self = this;
 			this._bot.shoot(function(err, data){
 				if (err) {
 					return alert(err);
@@ -223,12 +225,13 @@
 				//
 				var isHit = Battleship._board.shootAt(data);
 				//
-				// this._bot.shootAt(data, isHit);
+				self._bot.shootAt(data, isHit);
 				// Fire callback
 				cb();
 			});
 		}
 	};
+	window.Battleship = Battleship;
 	
 	// Init elements
 	var $grids = $('#grids');

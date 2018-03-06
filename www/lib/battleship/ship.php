@@ -35,6 +35,90 @@ class Ship {
     const TYPE_DESROYER = 'Destroyer';
     
     /**
+     * Direction: 0 (portrail)
+     * @var integer
+     */
+    const DIREC_P = 0;
+    
+    /**
+     * Direction: 1 (landscape)
+     * @var integer
+     */
+    const DIREC_L = 1;
+    
+    /**
+     * 
+     */
+    public static function matrixByType($type, $direction = null) {
+        $dP = static::DIREC_P;
+        $dL = static::DIREC_L;
+        $direction = ($dL == $direction) ? $dL : $dP;
+        
+        $matrix = array(
+            static::TYPE_AIRCRAFT => array(
+                $dP => array(
+                    array(1, 0),
+                    array(1, 1),
+                    array(1, 0),
+                    array(1, 0),
+                ),
+                $dL => array(
+                    array(0, 0, 1, 0),
+                    array(1, 1, 1, 1),
+                )
+            ),
+            // #end
+            static::TYPE_BATTLESHIP => array(
+                $dP => array(
+                    array(1),
+                    array(1),
+                    array(1),
+                    array(1),
+                ),
+                $dL => array(
+                    array(1, 1, 1, 1),
+                )
+            ),
+            // #end
+            static::TYPE_CRUISER => array(
+                $dP => array(
+                    array(1),
+                    array(1),
+                ),
+                $dL => array(
+                    array(1, 1),
+                )
+            ),
+            // #end
+            static::TYPE_SUBMARINE => array(
+                $dP => array(
+                    array(1, 1),
+                    array(1, 1),
+                ),
+                $dL => array(
+                    array(1, 1),
+                    array(1, 1),
+                )
+            ),
+            // #end
+            static::TYPE_DESROYER => array(
+                $dP => array(
+                    array(1),
+                    array(1),
+                    array(1),
+                ),
+                $dL => array(
+                    array(1, 1, 1),
+                )
+            ),
+            // #end
+        );
+        
+        // Return
+        return $matrix[$type][$direction];
+    }
+    
+    /**
      * 
      * @var string
      */
@@ -43,12 +127,12 @@ class Ship {
     /**
      * @var integer
      */
-    protected $_cols = 0;
+    protected $_direction = 0;
     
     /**
-     * @var integer
+     * @var array
      */
-    protected $_rows = 0;
+    protected $_matrix = array();
 	
 	/**
      * @var integer
@@ -66,39 +150,33 @@ class Ship {
      * @param array $options
      */
     public function __construct($type, array $options = array()) {
-        $cols = 1; $rows = 0;
+        $matrix = static::matrixByType($type, $options['direction']);
         switch ($type) {
             case static::TYPE_AIRCRAFT:
-                $rows = 5;
                 $options['x'] = 2;
                 $options['y'] = 2;
                 break;
             case static::TYPE_BATTLESHIP:
-                $rows = 4;
                 $options['x'] = 6;
                 $options['y'] = 3;
                 break;
             case static::TYPE_CRUISER:
-                $rows = 3;
-                $options['x'] = 3;
-                $options['y'] = 19;
+                $options['x'] = 19;
+                $options['y'] = 3;
                 break;
             case static::TYPE_SUBMARINE:
-                $rows = 3;
-                $options['x'] = 5;
-                $options['y'] = 14;
+                $options['x'] = 14;
+                $options['y'] = 5;
                 break;
             case static::TYPE_DESROYER:
-                $rows = 2;
-                $options['x'] = 6;
-                $options['y'] = 22;
+                $options['x'] = 12;
+                $options['y'] = 6;
                 break;
             default:
                 throw new Exception('Ship type is unknown!');
         }
         $this->_type = $type;
-        $this->_cols = $cols;
-        $this->_rows = $rows;
+        $this->_matrix = $matrix;
 		
 		// Set pos?
 		$this->setPos($options['x'], $options['y']);
@@ -134,8 +212,7 @@ class Ship {
 	public function toArr() {
 		return array(
 			'type' => $this->_type,
-			'cols' => $this->_cols,
-			'rows' => $this->_rows,
+			'matrix' => $this->_matrix,
 			'x' => $this->_x,
 			'y' => $this->_y
 		);
