@@ -6,7 +6,7 @@
 	/**
 	 | @var string
 	 */
-	var SESSID = (new Date()).toISOString().substring(0, 10);
+	var SESSID = (new Date()).toISOString().substring(0, 10) + Date.now();
 
 	/**
 	 |
@@ -29,6 +29,10 @@
 		}
 	};
 	Board.prototype = {
+		/**
+		 | 
+		 */
+		_shootCnt: 0,
 		/**
 		 | Init board (render board with cols and rows)
 		 */
@@ -77,9 +81,9 @@
 		 */
 		renderShoots: function renderShoots(shoots) {
 			var shoot = null, cnt = 0, $td = null;
-			for (var x in (shoots || {})) {
-				shoot = shoots[x];
-				for (var y in (shoot || {})) {
+			for (var y in (shoots || {})) {
+				shoot = shoots[y];
+				for (var x in (shoot || {})) {
 					cnt = 1 * shoot[y];
 					$td = this._styleTdShoot(x, y);
 				}
@@ -89,12 +93,44 @@
 		 | 
 		 */
 		shootAt: function shootAt(data) {
-			var isHit = false;
+			var isHit = 0;
 			var $td = this._styleTdShoot(data.x, data.y);
 			if ($td && $td.length) {
-				isHit = !!$.trim($td.attr('data-ship'));
+				var ship = $.trim($td.attr('data-ship'));
+				if (ship) { // Ship was destroy?
+					isHit = 1;
+					var sltShip = 'td[data-ship="' + ship + '"]';
+					var sltShoot = 'td[data-shoot]';
+					var $tdShips = this._$board.find(sltShip);
+					var $tdShoots = $tdShips.filter(sltShoot);
+					// console.log(sltShip, sltShoot, $tdShips, $tdShoots);
+					// Case: ship down! 
+					if ($tdShips.length == $tdShoots.length) {
+						var position = [];
+						$tdShips.each(function(){
+							var $this = $(this), $tr = $this.parent();
+							var col = (1 * ($this.attr('class').match(/col(\d+)/) || [])[1] || '0');
+							var row = (1 * ($tr.attr('class').match(/row(\d+)/) || [])[1] || '0')
+							position.push({ x: col, y: row });
+						});
+						isHit = {
+							'type': ship,
+							'position': position
+						};
+					}
+					
+				}
+				// Game end?
+				$tdShips = this._$board.find('td[data-ship]');
+				$tdShoots = $tdShips.filter('td[data-shoot]');
+				if ($tdShips.length == $tdShoots.length) {
+					setTimeout(function(){
+						alert('Game end!!!');
+					}, 512);
+				}
 			}
-			console.log('shootAt # data: ', data, ' - isHit: ', isHit);
+			this._shootCnt += 1;
+			console.log('shoot#' + this._shootCnt + ' data: ', data, ' - isHit: ', isHit);
 			return isHit;
 		},
 		/**
@@ -107,7 +143,7 @@
 				var shootCnt = (1 * ($td.attr('data-shoot') || 0)) + 1;
 				$td.attr('data-shoot', shootCnt);
 			}
-			console.log('_styleTdShoot # slt: ', slt, ' - $td: ',  $td.get(0));
+			// console.log('_styleTdShoot # slt: ', slt, ' - $td: ',  $td.get(0));
 			return $td;
 		}
 	};
@@ -159,7 +195,7 @@
 		 | 
 		 */
 		shootAt: function shootAt(data, isHit) {
-			data = $.extend({ 'is_hit': 1 * isHit }, data); 
+			data = $.extend({ 'is_hit': isHit }, data); 
 			this.call('shoot_at', data);
 		}
 	};

@@ -153,24 +153,14 @@ class Ship {
         $matrix = static::matrixByType($type, $options['direction']);
         switch ($type) {
             case static::TYPE_AIRCRAFT:
-                $options['x'] = 2;
-                $options['y'] = 2;
                 break;
             case static::TYPE_BATTLESHIP:
-                $options['x'] = 6;
-                $options['y'] = 3;
                 break;
             case static::TYPE_CRUISER:
-                $options['x'] = 19;
-                $options['y'] = 3;
                 break;
             case static::TYPE_SUBMARINE:
-                $options['x'] = 14;
-                $options['y'] = 5;
                 break;
             case static::TYPE_DESROYER:
-                $options['x'] = 12;
-                $options['y'] = 6;
                 break;
             default:
                 throw new Exception('Ship type is unknown!');

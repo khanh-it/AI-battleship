@@ -1,8 +1,6 @@
 <?php
 //
 require_once('board.php');
-require_once('battleship.php');
-require_once('ship.php');
 
 /**
  * Class for working with game engine!
@@ -32,11 +30,6 @@ class Battleship {
      * @var Board
      */
 	protected $_board;
-	
-	/**
-     * @var array of Ship
-     */
-	protected $_ships;
 
     /**
      * 
@@ -106,18 +99,6 @@ class Battleship {
 	    $this->_board = new Board($this->_data['board']);
 	    // #end
 	    
-	    // @TODO: init and place ships?
-	    $this->_ships = array(
-	        new Ship(Ship::TYPE_AIRCRAFT, array(
-	            'direction' => Ship::DIREC_L
-	        )),
-	        new Ship(Ship::TYPE_BATTLESHIP),
-	        new Ship(Ship::TYPE_SUBMARINE),
-	        new Ship(Ship::TYPE_CRUISER),
-	        new Ship(Ship::TYPE_DESROYER)
-	    );
-	    // #end
-	    
 	    // Save game data on reqquest shutdown!
 	    register_shutdown_function(array($this, '__destruct'));
 	}
@@ -138,11 +119,11 @@ class Battleship {
 			case 'new_game':
 				$this->_newGame($request['data']);
 				break;
-			// Our shoot
+			// Request shoot
 			case 'shoot':
 			    $this->_shoot($request['data']);
 			    break;
-            // Their shoot
+			// Response shoot
 			case 'shoot_at':
 			    $this->_shootAt($request['data']);
 			    break;
@@ -161,7 +142,7 @@ class Battleship {
         // Save (replace) data
         $saveGameID = static::getGameSessionID();
         $filename = "{$this->_data_dir}{$saveGameID}.json";
-        file_put_contents($filename, json_encode($data, JSON_PRETTY_PRINT /*JSON_FORCE_OBJECT*/));
+        file_put_contents($filename, json_encode($data/*,JSON_PRETTY_PRINT*/));
         return $this;
     }
     
@@ -182,49 +163,22 @@ class Battleship {
      */
 	protected function _newGame($data) {
 		// Reset game data
-		// @TODO:
-	    // $this->_data['board'] = array();
-	    // $this->_data['ships'] = array();
-	    // $this->_saveGameData();
-	    $this->_initBoard($data);
-	    $this->_initShips($data);
 	    //
+	    $dboard = $this->_data['board'];
+	    if (is_null($dboard)) {
+	        $dboard = $this->_data['board'] = $this->_board->toArr();
+	    }
+	    // @TODO:
+	    // $this->_saveGameData();
+	    //
+	    $shoots = $dboard['shoots'];
+	    unset($shoots['_']);
 	    $resData = array(
-	        'ships' => $this->_data['ships'],
-	        'shoots' => $this->_data['board']['shoots']
+	        'ships' => $dboard['ships'],
+	        'shoots' => $shoots
 	    );
         //		
 	    return $this->response($resData);
-	}
-	
-	/**
-	 * Init board
-	 * @param array $data Request data
-	 * @return Battleship
-	 */
-	protected function _initBoard($data) {
-	    //
-	    if (!isset($this->_data['board'])) {
-	        $this->_data['board'] = $this->_board->toArr();
-	    }
-	    //
-	    return $this;
-	}
-	
-	/**
-	 * Load ships (on board)
-     * @param array $data Request data
-     * @return Battleship
-	 */
-	protected function _initShips($data) {
-	    if (!isset($this->_data['ships'])) {
-    	    $this->_data['ships'] = array();
-    	    foreach ($this->_ships as $ship) {
-    	        $this->_data['ships'][] = $ship->toArr();
-    	    }
-	    }
-	    //
-	    return $this;
 	}
 	
 	/**
@@ -254,8 +208,6 @@ class Battleship {
 	    //
 	    // +++
 	    $this->_data['board'] = $this->_board->toArr();
-	    // +++
-	    // $this->_data['board'] = $this->_board->toArr();
 	    //
 	    $this->_saveGameData();
 	}

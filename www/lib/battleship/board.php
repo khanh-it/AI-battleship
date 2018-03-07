@@ -1,4 +1,7 @@
 <?php
+//
+require_once('ship.php');
+
 /**
  * 
  * @author KhanhDTP
@@ -18,6 +21,11 @@ class Board {
      * @var integer
      */
     protected $_type = null;
+    
+    /**
+     * @var array of Ship
+     */
+    protected $_ships;
 
     /**
      * @var integer
@@ -47,15 +55,34 @@ class Board {
     /**
      * @var array History of our shoots
      */
-    protected $_shoots = array();
+    protected $_shoots = array(
+        '_' => array() // special key, store values by rows, cols 
+    );
+    
+    /**
+     * @var array History of our shoots that hit opponent's ships
+     */
+    protected $_hitShoots = array(
+        '_' => array() // special key, store values by rows, cols
+    );
     
     /**
      * @var array History of opponents shoots
      */
-    protected $_opponentsShoots = array();
+    protected $_opponentsShoots = array(
+        '_' => array() // special key, store values by rows, cols
+    );
     
     /**
-     * 
+     * @var integer Maximun number of missed shoot per block
+     */
+    protected $_shoots_per_block = 6;
+    
+    /**
+     * Build string key from $row, $col
+     * @param int $row
+     * @param int $col
+     * @return string
      */
     public static function key($row, $col) {
         return "{$row}:{$col}";
@@ -67,6 +94,25 @@ class Board {
      */
     public function __construct(array $data = null) {
         $this->fromArr($data);
+        $this->_initShips($data);
+    }
+    
+    /**
+     * Load ships (on board)
+     * @param array $data Request data
+     * @return Battleship
+     */
+    protected function _initShips($data = null) {
+        if (is_null($this->_ships)) {
+            $shipPresets = require_once __DIR__ . '/ship-presets.php';
+            // $shipPreset = $shipPresets[rand(0, count($shipPresets) - 1)];
+            $shipPreset = $shipPresets[count($shipPresets) - 1];
+            foreach ($shipPreset as $shipP) {
+                $this->_ships[] = (new Ship($shipP['type'], $shipP))->toArr();
+            }
+        }
+        //
+        return $this;
     }
     
     /**
@@ -74,21 +120,55 @@ class Board {
      * @return array
      */
     public function shoot() {
-        $return = array(
-            'x' => 1, 'y' => 1
-        );
-        list($blockRow, $blockCol) = $this->_calWillShootBlock();
-        $cells = $this->_getShootBlockCells($blockRow, $blockCol);
-        foreach ($cells as $cell) {
-            if ($cell->sum % 2 == 0) {
-                if (!is_null($this->_shoots[$cell->y][$cell->x])) {
-                    continue;
+        //
+        $return = array();
+        // Trace hit shoots?
+        $hitShoot = null;
+        foreach ($this->_hitShoots as $row => $colWVal) {
+            if (!is_numeric($row)) { continue; }
+            foreach ($colWVal as $col => $val) {
+                if (is_null($val) && is_null($this->_shoots[$row][$col])) {
+                    $hitShoot = array($row, $col);
+                    break;
                 }
+            }
+            if ($hitShoot) break;
+        }
+        if ($hitShoot) {
+            list($row, $col) = $hitShoot;
+            $return = array(
+                'x' => $col, 'y' => $row
+            );
+        }
+        
+        //
+        if (empty($return)) {
+            $block = $this->_calWillShootBlock();
+            // @TODO: $block is empty!
+            if (empty($block)) {
+                
+            } else {
+                list($blockRow, $blockCol) = $block;
+                $cells = $this->_getShootBlockCells($blockRow, $blockCol);
+            }
+            $rand = array();
+            foreach ($cells as $cell) {
+                // @TODO: odd or even?
+                if ($cell->sum % 2 == 0) { // odd
+                    if (!is_null($this->_shoots[$cell->y][$cell->x])) {
+                        continue;
+                    }
+                    $rand[] = $cell;
+                }
+            }
+            $cell = $rand[$cellIdx = (rand(1, count($rand)) - 1)];
+            if ($cell) {
+                $key = static::key($cell->y, $cell->x);
+                $this->_shoots['_'][$key] = 0;
                 $this->_shoots[$cell->y][$cell->x] = 0;
                 $return = array(
                     'x' => $cell->x, 'y' => $cell->y
                 );
-                break;
             }
         }
         return $return;
@@ -99,7 +179,61 @@ class Board {
      * @return array
      */
     public function shootAt($data) {
-        $this->_opponentsShoots[$data['y']][$data['x']] += intval($data['is_hit']); 
+        //
+        $key = static::key($data['y'], $data['x']);
+        $isHit = $data['is_hit'];
+        // Case: normal hit
+        if (is_numeric($isHit)) {
+            $isHit = intval($isHit); // 0 | 1
+        // @TODO: ship was destroys
+        } else {
+            //
+            $isHit = 1;
+        }
+
+        // Case: hit. Add relative cells to list.
+        if ($isHit) {
+            $cells = array(
+                array($data['y'] - 0, $data['x'] - 0),
+                array($data['y'] - 1, $data['x'] - 0),
+                array($data['y'] + 1, $data['x'] - 0),
+                array($data['y'] - 0, $data['x'] - 1),
+                array($data['y'] - 0, $data['x'] + 1)
+            );
+            // Cal relative cells
+            foreach ($cells as $cell) {
+                list($row, $col) = $cell;
+                $_k = static::key($row, $col);
+                if (($row < 1 || $row > $this->_rows)
+                    || ($col < 1 || $col > $this->_cols)
+                    || (!is_null($this->_shoots['_'][$_k]) && $_k != $key)
+                ) {
+                    continue;
+                }
+                if (!array_key_exists($_k, (array)$this->_hitShoots['_'])) {
+                    $this->_hitShoots['_'][$_k] = null;
+                    $this->_hitShoots[$row][$col] = null;
+                }
+            }
+            unset($_k);
+        }
+        //
+        if (array_key_exists($key, (array)$this->_hitShoots['_'])) {
+            $this->_hitShoots['_'][$key] += $isHit;
+            $this->_hitShoots[$data['y']][$data['x']] += $isHit;
+        }
+
+        // Our shoots result?
+        // +++ Store shoots by key
+        $this->_shoots['_'][$key] += $isHit;
+        // +++ Store shoot by rows, cols
+        $this->_shoots[$data['y']][$data['x']] += $isHit;
+        
+        // Opponent shoots?
+        // +++ Store shoots by key
+        $this->_opponentsShoots['_'][$key] += $isHit;
+        // +++ Store shoot by rows, cols
+        $this->_opponentsShoots[$data['y']][$data['x']] += $isHit;
     }
     
     /**
@@ -123,14 +257,23 @@ class Board {
         if (is_numeric($data['rows']) && $data['rows'] > 0) {
             $this->_rows = $data['rows'];
         } */
+        if (is_array($data['ships'])) {
+            $this->_ships = $data['ships'];
+        }
         if (is_array($data['shoots'])) {
             $this->_shoots = $data['shoots'];
+        }
+        if (is_array($data['hit_shoots'])) {
+            $this->_hitShoots = $data['hit_shoots'];
         }
         if (is_array($data['opponents_shoots'])) {
             $this->_opponentsShoots = $data['opponents_shoots'];
         }
         if (is_array($data['shoot_blocks'])) {
             $this->_shootBlocks = $data['shoot_blocks'];
+        }
+        if (is_numeric($data['shoots_per_block'])) {
+            $this->_shoots_per_block = $data['shoots_per_block'];
         }
         // Build data
         $this->_buildData();
@@ -173,15 +316,19 @@ class Board {
      * Count number of cell(s) shoot
      * @param int $blockRow Block row
      * @param int $blockCol Block col
+     * @param array $options Options
      * @return int
      */
-    protected function _numOfCellsShoot($blockRow, $blockCol) {
+    protected function _numOfCellsShoot($blockRow, $blockCol, array $options = array()) {
         $cnt = 0;
         $cells = $this->_getShootBlockCells($blockRow, $blockCol);
         foreach ($cells as $cell) {
             if (!is_null($this->_shoots[$cell->y][$cell->x])) {
                 $cnt += 1;
             }
+        }
+        if (true === $options['cells_count']) {
+            return array($cnt, count($cells));
         }
         return $cnt;
     }
@@ -193,28 +340,54 @@ class Board {
         $shootBlocks = $this->_shootBlocks;
         end($shootBlocks);
         $block = current($shootBlocks);
-        //
+        // Pick previous shoot block
         if ($block) {
             list($blockRow, $blockCol) = $block;
             $numOfCellsShoot = $this->_numOfCellsShoot($blockRow, $blockCol);
-            // @TODO
-            if ($numOfCellsShoot >= 5) {
+            if ($numOfCellsShoot >= $this->_shoots_per_block) {
                 $block = null;
             }
         }
-        
-        if (!$block) {
-            do {
-                $blockRow = rand(1, count($this->_blocks));
-                $blockCol01 = rand(2, 4 /* count($this->_blocks[$blockRow]) */);
-                $blockCol02 = rand(1, 2);
-                if (2 == $blockCol02) {
-                    $blockCol02 = 5;
+        //
+        $maxCellCnts = 0;
+        $shootBlocksCenter = array();
+        $shootBlocksEdges = array();
+        for ($bR = 1; $bR <= count($this->_blocks); $bR++) {
+            for ($bC = 1; $bC <= count($this->_blocks[$bR]); $bC++) {
+                list($num, $cellsCnt) = $this->_numOfCellsShoot($bR, $bC, array('cells_count' => true)); // num of cells shoot
+                $lessShootPerBlock = ($num < $this->_shoots_per_block);
+                // Blocks from centers
+                if ($lessShootPerBlock) {
+                    // Blocks from centers
+                    if ($bC >= 2 && $bC <= 4) {
+                        $shootBlocksCenter[] = array($bR, $bC);
+                    // Blocks from edge
+                    } else {
+                        $shootBlocksEdges[] = array($bR, $bC);
+                    }
                 }
-                $block = array($blockRow, $blockCol01);
-                $key = static::key($blockRow, $blockCol01);
-                $this->_shootBlocks[$key] = $block;
-            } while (!$block);
+                //
+                $maxCellCnts = max($maxCellCnts, $cellsCnt);
+            }
+        }
+        // Pick shoot blocks from center?
+        if (!$block && !empty($shootBlocksCenter)) {
+            list($bR, $bC) = $block = $shootBlocksCenter[rand(0, count($shootBlocksCenter) - 1)];
+            $this->_shootBlocks[static::key($bR, $bC)] = $block;
+        }
+        // Pick shoot blocks from edge
+        if (!$block && !empty($shootBlocksEdges)) {
+            list($bR, $bC) = $block = $shootBlocksEdges[rand(0, count($shootBlocksEdges) - 1)];
+            $this->_shootBlocks[static::key($bR, $bC)] = $block;
+        }
+        //
+        if (!$block && ($this->_shoots_per_block < ($maxCellCnts / 2))) {
+            $this->_shoots_per_block += 1;
+            return $this->_calWillShootBlock();
+        }
+        // Block is empty!
+        if (!$block) {
+            // die('$block is empty!');
         }
         // Return
         return $block;
@@ -226,11 +399,14 @@ class Board {
     public function toArr() {
         $return = array(
             'type' => $this->_type,
-            'cols' => $this->_cols,
-            'rows' => $this->_rows,
+            // 'cols' => $this->_cols,
+            // 'rows' => $this->_rows,
+            'ships' => $this->_ships,
             'shoots' => $this->_shoots,
+            'hit_shoots' => $this->_hitShoots,
             'opponents_shoots' => $this->_opponentsShoots,
             'shoot_blocks' => $this->_shootBlocks,
+            'shoots_per_block' => $this->_shoots_per_block,
         );
         return $return;
     }
