@@ -76,7 +76,7 @@ class Board {
     /**
      * @var integer Maximun number of missed shoot per block
      */
-    protected $_shoots_per_block = 6;
+    protected $_shoots_per_block = 4;
     
     /**
      * Build string key from $row, $col
@@ -105,8 +105,8 @@ class Board {
     protected function _initShips($data = null) {
         if (is_null($this->_ships)) {
             $shipPresets = require_once __DIR__ . '/ship-presets.php';
-            // $shipPreset = $shipPresets[rand(0, count($shipPresets) - 1)];
-            $shipPreset = $shipPresets[count($shipPresets) - 1];
+            $shipPreset = $shipPresets[count($shipPresets) - 1]; // Pick last
+            $shipPreset = $shipPresets[rand(0, count($shipPresets) - 1)]; // Pick random
             foreach ($shipPreset as $shipP) {
                 $this->_ships[] = (new Ship($shipP['type'], $shipP))->toArr();
             }
@@ -185,9 +185,21 @@ class Board {
         // Case: normal hit
         if (is_numeric($isHit)) {
             $isHit = intval($isHit); // 0 | 1
-        // @TODO: ship was destroys
+        // @TODO: ship was destroy
         } else {
-            //
+            // Kiem tra lai lich su ban tau so voi vi tri tau (game engine gui len).
+            // Neu, van con hit cell nam ngoai vi tri tau --> chac 100% la van con tau gan ben.
+            // Trace hit shoots?
+            foreach ($this->_hitShoots as $row => $colWVal) {
+                if (!is_numeric($row)) { continue; }
+                foreach ($colWVal as $col => $val) {
+                    if (is_null($val)) {
+                        $this->_hitShoots['_'][static::key($row, $col)] = 0;
+                        $this->_hitShoots[$row][$col] = 0;
+                    }
+                }
+            }
+            // #end
             $isHit = 1;
         }
 

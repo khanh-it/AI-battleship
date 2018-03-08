@@ -298,6 +298,9 @@
 	};
 	
 	//
-	$btnNewGame.click(function(){ NewGame(); });
+	$btnNewGame.click(function(){ 
+		// NewGame();
+		window.location.reload();
+	});
 	setTimeout(NewGame, 368);
 })(jQuery);

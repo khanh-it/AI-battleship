@@ -6,9 +6,19 @@
 }
 #grids table {
 	width: auto;
+	border: 2px dotted red;
+}
+#grids table tr:nth-child(0n+4) > td {
+	border-bottom: 2px dotted red;
 }
 #grids table td{
 	padding: 0;
+}
+#grids table td:not([data-shoot]) {
+	background-color: transparent !important;
+}
+#grids table td:nth-child(4n+0) {
+	border-right: 2px dotted red;
 }
 #grids table td div{
 	position: relative;
@@ -31,11 +41,14 @@
 	display: inline-block;
 	font-weight: bold;
 }
+#grids table td[data-shoot][data-ship] > div::after {
+	content: 'o';
+}
 #grids table td[data-ship] {
-	border: solid 1px #666;
+	/* border: none 0 !important; */
 }
 #grids table td[data-ship][data-shoot] {
-	border: dashed 2px green;
+	border: dashed 2px green !important;
 	color: green;
 }
 #grids table td[data-ship="Aircraft"] {
