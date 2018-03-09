@@ -197,6 +197,12 @@
 		shootAt: function shootAt(data, isHit) {
 			data = $.extend({ 'is_hit': isHit }, data); 
 			this.call('shoot_at', data);
+		}, 
+		/**
+		 | 
+		 */
+		checkAvail: function checkAvail(data) {
+			this.call('check_avail', data);
 		}
 	};
 
@@ -252,6 +258,7 @@
 		 | 
 		 */
 		shoot: function shoot(cb) {
+			// Format cb
 			cb = cb || $.noop;
 			var self = this;
 			this._bot.shoot(function(err, data){
@@ -265,7 +272,25 @@
 				// Fire callback
 				cb();
 			});
-		}
+		},
+		
+		/**
+		 | 
+		 */
+		checkAvail: function checkAvail(cb) {
+			// Format cb
+			cb = cb || $.noop;
+			var self = this;
+			this._bot.checkAvail(function(err, data){
+				if (err) {
+					return alert(err);
+				}
+				//
+				console.log('_bot.checkAvail: ', err, data);
+				// Fire callback
+				cb();
+			});
+		},
 	};
 	window.Battleship = Battleship;
 	
@@ -273,6 +298,7 @@
 	var $grids = $('#grids');
 	var $btnNewGame = $('#btn-new_game');
 	var $btnShoot = $('#btn-shoot');
+	var $btnCheckAvail = $('#btn-check-avail');
 
 	// Start game?!
 	function NewGame(){
@@ -302,5 +328,10 @@
 		// NewGame();
 		window.location.reload();
 	});
-	setTimeout(NewGame, 368);
+	//
+	$btnCheckAvail.click(function(){
+		Battleship.checkAvail();
+	});
+	//
+	setTimeout(NewGame, 256);
 })(jQuery);

@@ -25,6 +25,7 @@ require_once '../lib/battleship/board.php';
 		<p>
 			<button id="btn-new_game" class="btn btn-sm btn-default">New game</button>
             <button id="btn-shoot" class="btn btn-sm btn-danger disabled">Shoot</button>
+            <button id="btn-check-avail" class="btn btn-sm btn-primary">Check available?</button>
 		</p>
     	<div id="grids" class="clearfix"></div>
 	</div>

@@ -306,7 +306,9 @@ class Board {
                     'y' => $row,
                     'sum' => $col + $row
                 );
+                $this->_matrix['_'][static::key($row, $col)] = $cell;
                 $this->_matrix[$row][$col] = $cell;
+                $this->_matrixR['_'][static::key($col, $row)] = $cell;
                 $this->_matrixR[$col][$row] = $cell;
                 //
                 $this->_blocks[$blockRow][$blockCol][] = $cell; 
@@ -403,6 +405,78 @@ class Board {
         }
         // Return
         return $block;
+    }
+    
+    /**
+     *
+     */
+    public function checkAvail($data) {
+        // Started with a board 
+        $matrix = array();
+        
+        $shipDirc = array(Ship::DIREC_P, Ship::DIREC_L);
+        foreach ($this->_ships as $ship) {
+            for ($row = 1; $row <= $this->_rows; $row++) {
+                for ($col = 1; $col <= $this->_cols; $col++) {
+                    foreach ($shipDirc as $dirc) {
+                        // Cells of a ship by row:col...
+                        $shipStats = $this->_getShipStats($ship['type'], $dirc, $row, $col);
+                        // Case: this ship placed succeed on board!
+                        if (!$shipStats['opponent_missed']) {
+                            $cellKeys = array_flip(array_keys($shipStats['cells']));
+                            $matrix = array_replace($matrix, $cellKeys);
+                        }
+                    }
+                }
+            }
+        }
+        echo '<pre>$matrix '; var_dump($matrix); echo '</pre>';
+        echo '<pre>$matrix 2 '; var_dump($this->_matrix['_']); echo '</pre>';
+        die();
+        die();
+    }
+    
+    /**
+     * 
+     */
+    protected function _getShipStats($type, $direction, $startRow, $startCol) {
+        $totalCell = 0;
+        $opponentHit = 0;
+        $opponentMissed = 0;
+        $cells = array();
+        $matrix = Ship::matrixByType($type, $direction);
+        foreach ($matrix as $_r => $line) { // zero based
+            $row = ($startRow + $_r);
+            foreach ($line as $_c => $dot) {
+                if ($dot) {
+                    $key = static::key($row, $col = ($startCol + $_c));
+                    //
+                    $totalCell += 1;
+                    //
+                    $opponentsShoot = $this->_opponentsShoots[$row][$col];
+                    //
+                    $cells[$key] = array($row, $col, array(
+                        'opponent_hit' => $opponentsShoot
+                    ));
+                    //
+                    if (!is_null($opponentsShoot)) {
+                        if (!$opponentsShoot) {
+                            $opponentMissed += 1;
+                        } else {
+                            $opponentHit += 1;
+                        }
+                    }
+                }
+            }
+        }
+        $return = array(
+            'total_cell' => $totalCell,
+            'opponent_hit' => $opponentHit,
+            'opponent_missed' => $opponentMissed,
+            'cells' => $cells
+        );
+        // echo '<pre>'; var_dump($return); echo '</pre>';die();
+        return $return;
     }
     
     /**

@@ -127,6 +127,10 @@ class Battleship {
 			case 'shoot_at':
 			    $this->_shootAt($request['data']);
 			    break;
+            // Check available
+			case 'check_avail':
+			    $this->_checkAvail($request['data']);
+			    break;
 		}
 		//
 		static::response($this->_response);
@@ -197,6 +201,16 @@ class Battleship {
 	protected function _shootAt($data) {
 	    // Request fire
 	    $resData = $this->_board->shootAt($data);
+	    //
+	    return $this->response($resData);
+	}
+	
+	/**
+	 *
+	 */
+	protected function _checkAvail($data) {
+	    // Request fire
+	    $resData = $this->_board->checkAvail($data);
 	    //
 	    return $this->response($resData);
 	}
