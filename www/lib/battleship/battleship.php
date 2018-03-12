@@ -146,7 +146,7 @@ class Battleship {
         // Save (replace) data
         $saveGameID = static::getGameSessionID();
         $filename = "{$this->_data_dir}{$saveGameID}.json";
-        file_put_contents($filename, json_encode($data/*,JSON_PRETTY_PRINT*/));
+        file_put_contents($filename, json_encode($data, JSON_PRETTY_PRINT));
         return $this;
     }
     

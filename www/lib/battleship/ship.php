@@ -45,6 +45,13 @@ class Ship {
      * @var integer
      */
     const DIREC_L = 1;
+
+    /**
+     * @return array
+     */
+    public static function returnDirecArr() {
+        return array(static::DIREC_P, static::DIREC_L);
+    }
     
     /**
      * 
@@ -204,7 +211,13 @@ class Ship {
 			'type' => $this->_type,
 			'matrix' => $this->_matrix,
 			'x' => $this->_x,
-			'y' => $this->_y
+            'y' => $this->_y,
+            'direction' => $this->_direction,
+            'sunk' => 0,
+            // opponent data
+            'ox' => 0,
+            'oy' => 0,
+            'osunk' => 0
 		);
 	}
 }

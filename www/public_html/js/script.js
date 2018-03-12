@@ -170,7 +170,7 @@
 		call: function call(type, data, cb) {
 			cb = cb || $.noop;
 			data = $.extend({ sessionid: SESSID }, data);
-			$.post('/', { type: type, data: data }, function(result){
+			$.post('/?type=' + encodeURIComponent(type), { type: type, data: data }, function(result){
 				if (result && (1 * result.status)) {
 					cb(null, result.data);
 				} else {
@@ -196,7 +196,9 @@
 		 */
 		shootAt: function shootAt(data, isHit) {
 			data = $.extend({ 'is_hit': isHit }, data); 
-			this.call('shoot_at', data);
+			this.call('shoot_at', data, function(err, result){
+				console.log('shootAt: ', err, result);
+			});
 		}, 
 		/**
 		 | 
