@@ -212,7 +212,7 @@ class Ship {
 			'matrix' => $this->_matrix,
 			'x' => $this->_x,
             'y' => $this->_y,
-            'direction' => $this->_direction,
+            // 'direction' => $this->_direction,
             'sunk' => 0,
             // opponent data
             'ox' => 0,

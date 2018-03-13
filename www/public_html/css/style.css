@@ -15,7 +15,7 @@
 	padding: 0;
 }
 #grids table td:not([data-shoot]) {
-	/* background-color: transparent !important; */
+	background-color: transparent !important;
 }
 #grids table td:nth-child(4n+0) {
 	border-right: 2px dotted red;
