@@ -6,7 +6,7 @@
 	/**
 	 | @var string
 	 */
-	var SESSID = (new Date()).toISOString().substring(0, 10) + Date.now();
+	var SESSID = (new Date()).toISOString().substring(0, 10); // + Date.now();
 
 	/**
 	 |
@@ -176,7 +176,10 @@
 				} else {
 					cb(new Error(result.msg));
 				}
-			}, 'json');
+			}, 'json')
+			.fail(function(){
+				console.log('post fail: ', arguments);
+			});
 		},
 		/**
 		 | 
@@ -196,9 +199,7 @@
 		 */
 		shootAt: function shootAt(data, isHit) {
 			data = $.extend({ 'is_hit': isHit }, data); 
-			this.call('shoot_at', data, function(err, result){
-				console.log('shootAt: ', err, result);
-			});
+			this.call('shoot_at', data);
 		}, 
 		/**
 		 | 

@@ -134,5 +134,38 @@ return array(
             'y' => 1,
             'direction' => 0
         ),
+    ),
+    /* 5 */
+    array(
+        array(
+            'type' => 'Aircraft',
+            'x' => 2,
+            'y' => 2,
+            'direction' => 1
+        ),
+        array(
+            'type' => 'Battleship',
+            'x' => 6,
+            'y' => 3,
+            'direction' => 0
+        ),
+        array(
+            'type' => 'Submarine',
+            'x' => 9,
+            'y' => 3,
+            'direction' => 0
+        ),
+        array(
+            'type' => 'Destroyer',
+            'x' => 8,
+            'y' => 3,
+            'direction' => 0
+        ),
+        array(
+            'type' => 'Cruiser',
+            'x' => 7,
+            'y' => 4,
+            'direction' => 0
+        ),
     )
 );

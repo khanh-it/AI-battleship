@@ -119,7 +119,7 @@ class Board {
         if (is_null($this->_ships)) {
             $shipPresets = require_once __DIR__ . '/ship-presets.php';
             $shipPreset = $shipPresets[rand(0, count($shipPresets) - 1)]; // Pick random
-            $shipPreset = $shipPresets[0]; // debug
+            // $shipPreset = $shipPresets[4]; // debug
             foreach ($shipPreset as $shipP) {
                 $this->_ships[] = (new Ship($shipP['type'], $shipP))->toArr();
             }
@@ -203,22 +203,23 @@ class Board {
      * @param array $options Options
      * @return array
      */
-    protected function _shipContainCells(array $cells, $ship, array $options = array()) {
+    protected function _shipContainCells(array $cells, $ship, array &$options = array()) {
         // var_dump($cells, $ship); // debug
         $return = array();
         $this->_mapCell(function($row, $col, $key) use ($cells, $ship, &$return) {
+            $cellCnt = count($cells);
             foreach (Ship::returnDirecArr() as $direc) {
                 $shipStats = $this->_getShipStats($ship['type'], $direc, $row, $col);
                 $containCnt = 0;
                 if (!$shipStats['total_missed']) {
                     foreach ($cells as $key) {
-                        $key = is_string($key) ? $key : static::key($cell);
+                        $key = is_string($key) ? $key : static::key($key);
                         if ($shipStats['cells'][$key]) {
                             $contains += 1;
                         }
                     }
                 }
-                if ($contains == count($cells)) {
+                if ($contains == $cellCnt) {
                     $return[] = $shipStats;
                     // var_dump($shipStats); // debug
                 }
@@ -226,6 +227,7 @@ class Board {
         });
         // Merge cells?
         if (true === $options['merge_cells'] && !empty($return)) {
+            $options['merge_cells'] = $return;
             $tmp = array();
             foreach ($return as $shipStats) {
                 $tmp = array_replace($tmp, $shipStats['cells']);
@@ -290,18 +292,17 @@ class Board {
             unset($_k);
         }
 
-        // Kiem tra lai lich su ban tau so voi vi tri tau (game engine gui len).
-        // Neu, van con hit cell nam ngoai vi tri tau --> chac 100% la van con tau gan ben.
         // Trace hit shoots?
-        if ($oShipSunk) {    
-            foreach ($this->_hitShoots as $row => $colWVal) {
-                if (!is_numeric($row)) { continue; }
-                foreach ($colWVal as $col => $val) {
-                    $val = (1 == $val) ? '' : 0;
-                    $this->_hitShoots['_'][static::key($row, $col)] = $val;
-                    $this->_hitShoots[$row][$col] = $val;
-                }
-            }
+        if ($oShipSunk) {
+            // @TODO: 
+            // Kiem tra lai lich su ban tau so voi vi tri tau (game engine gui len).
+            // Neu, van con hit cell nam ngoai vi tri tau --> chac 100% la van con tau gan ben.
+            /* foreach ($this->_hitShoots['_'] as $key => $val) {
+                list($row, $col) = static::keyR($key);
+                $val = (1 == $val) ? '' : 0;
+                $this->_hitShoots['_'][$key] = $val;
+                $this->_hitShoots[$row][$col] = $val;
+            } */
         } else {
             //
             if (array_key_exists($key, $this->_hitShoots['_'])) {
@@ -325,19 +326,23 @@ class Board {
 
         // @TODO
         $hitCells = array();
+        $__shipStats = array();
+        $availCells = array();
         foreach ($this->_hitShoots['_'] as $_k => $hitShoot) {
             if ($hitShoot) {
                 $hitCells[] = $_k;
+                foreach ($this->_ships as $ship) {
+                    if (!$ship['osunk']) {
+                        $options = array('merge_cells' => true);
+                        $_availCells = $this->_shipContainCells(array($_k), $ship, $options);
+                        $availCells = array_replace($availCells, $_availCells);
+                        if (is_array($options['merge_cells'])) {
+                            $__shipStats[] = $options['merge_cells'];
+                        }
+                    }
+                }
             }
-        }
-        $availCells = array();
-        foreach ($this->_ships as $ship) {
-            if (!$ship['osunk']/* && Ship::TYPE_SUBMARINE == $ship['type'] */) {
-                $_availCells = $this->_shipContainCells($hitCells, $ship, array('merge_cells' => true));
-                // $availCells = array_replace($availCells, $_availCells);
-                $availCells = (count($availCells) > count($_availCells)) ? $availCells : $_availCells;
-            }
-        } unset($_availCells);
+        } unset($_k, $_availCells, $options, $hitShoot);
         // $availCells se la danh sach cells co the ban trung (hit shoot)
         // Neu, cells nao trong danh sach hitShoots hien tai khong nam trong mang
         // nay thi loai bo (vi chac chan se khong trung)
@@ -349,8 +354,8 @@ class Board {
                     $this->_hitShoots['_'][$_k] = 0; // Ghi nhan da ban truot (missed)!
                     $this->_hitShoots[$_r][$_c] = 0; // Ghi nhan da ban truot (missed)!
                     // @TODO: ???
-                    $this->_shoots['_'][$_k] = 0; // Ghi nhan da ban truot (missed)!
-                    $this->_shoots[$_r][$_c] = 0; // Ghi nhan da ban truot (missed)!
+                    // $this->_shoots['_'][$_k] = 0; // Ghi nhan da ban truot (missed)!
+                    // $this->_shoots[$_r][$_c] = 0; // Ghi nhan da ban truot (missed)!
                     //
                     $_removedHitShoots[] = $_k; // debug
                 }
@@ -358,7 +363,8 @@ class Board {
         }
         if (!empty($_removedHitShoots)) {
             var_dump('$hitCells: ', $hitCells);
-            var_dump('$_removedHitShoots: ', $_removedHitShoots);
+            var_dump('$removedHitShoots: ', $_removedHitShoots);
+            var_dump('$shipStats: ', $__shipStats);
             var_dump('$availCells: ', $availCells);
             die(); // debug
         }
