@@ -98,7 +98,7 @@ class Board {
         $this->fromArr($data);
         $this->_initShips($data);
     }
-    
+
     /**
      * Load ships (on board)
      * @param array $data Request data
@@ -106,8 +106,9 @@ class Board {
      */
     protected function _initShips($data = null) {
         if (is_null($this->_ships)) {
-            $shipPresets = require_once __DIR__ . '/ship-presets.php';
-            $shipPreset = $shipPresets[rand(0, count($shipPresets) - 1)]; // Pick random
+            require_once __DIR__ . '/generalship.php';
+            $shipPresets = new Generalship([]);
+            $shipPreset = $shipPresets->_initMatch(); // Pick random
             // $shipPreset = $shipPresets[4]; // debug
             foreach ($shipPreset as $shipP) {
                 $this->_ships[] = (new Ship($shipP['type'], $shipP))->toArr();
