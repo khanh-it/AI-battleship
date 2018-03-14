@@ -70,6 +70,15 @@
 						if (!num) { continue; }
 						var slt = 'tr.row' + (ship.y + row) + ' > td.col' + (ship.x + col);
 						var $td = this._$board.find(slt);
+						if (!$td.length) {
+							alert('Critial error: ship is out of border. Slt: ' + slt + '.');
+							return;
+						}
+						var dataShip = $.trim($td.data('ship'));
+						if (dataShip) {
+							alert('Critial error: ships overlapped. Slt: ' + slt + '.');
+							return;
+						}
 						$td.attr('data-ship', (ship.name || ship.type));
 						// console.log('slt: ', slt, ' - $td: ',  $td.get(0));
 					}
