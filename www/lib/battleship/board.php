@@ -158,7 +158,7 @@ class Board {
     public function shoot() {
         //
         $return = array();
-        // Trace hit shoots?
+        // Target mode [trace hit shoots]?
         $hitShoot = null;
         foreach ($this->_hitShoots as $_k => $val) {
             if (is_null($val) && is_null($this->_shoots[$_k])) {
@@ -171,40 +171,33 @@ class Board {
             list($row, $col) = static::keyR($hitShoot);
             $return = array('x' => $col, 'y' => $row);
         }
+        // #end
         //
         if (empty($return)) {
+            $rowMin = null; $rowMax = null;
+            $colMin = null; $colMax = null;
+            $cells = array();
+            $oeCells = array(); // odd or even cells
             $block = $this->_calWillShootBlock();
-            // @TODO: $block is empty!
-            if (empty($block)) {
-                $cells = array();
-                $this->_mapCell(function($row, $col, $key) use (&$cells) {
-                    if (is_null($this->_shoots[$key])) {
-                        $cells[] = array($row, $col, $key);
-                    }
-                });
-                list($row, $col) = $cells[rand(0, count($cells) - 1)];
-                return array('x' => $col, 'y' => $row);
-            } else {
+            if (!empty($block)) {
                 list($blockRow, $blockCol) = $block;
-                $cells = $this->_getShootBlockCells($blockRow, $blockCol);
+                $rowMin = ($blockRow * 4) - 3;
+                $colMin = ($blockCol * 4) - 3;
+                $rowMax = $rowMin + 3;
+                $colMax = $colMin + 3;
             }
-            $rand = array();
-            foreach ($cells as $cell) {
-                // @TODO: odd or even?
-                if ($cell->sum % 2 == 0) { // odd
-                    if (!is_null($this->_shoots[$cell->key])) {
-                        continue;
+            $this->_mapCell(function($row, $col, $key) use (&$cells, &$oeCells) {
+                if (is_null($this->_shoots[$key])) {
+                    $cells[] = ($cell = array($row, $col, $key));
+                    // @TODO: odd or even?
+                    if (($row + $col) % 2 == 0) { // odd
+                        $oeCells[] = $cell;
                     }
-                    $rand[] = $cell;
                 }
-            }
-            $cell = $rand[$cellIdx = (rand(1, count($rand)) - 1)];
-            if ($cell) {
-                $this->_shoots[$cell->key] = 0;
-                $return = array(
-                    'x' => $cell->x, 'y' => $cell->y
-                );
-            }
+            }, $rowMin, $colMin, $rowMax, $colMax);
+            $cells = empty($oeCells) ? $cells : $oeCells;
+            list($_r, $_c) = $cells[$cellIdx = (rand(0, count($cells) - 1))];
+            $return = array('x' => $_c, 'y' => $_r);
         }
         return $return;
     }
@@ -259,6 +252,7 @@ class Board {
         //
         $key = static::key($data['y'], $data['x']);
         $isHit = $data['is_hit'];
+        $isHit = 0;
         // Opponent's ship sunk?
         $oShipSunk = null;
         // Case: normal hit
@@ -310,53 +304,20 @@ class Board {
         // +++ Store shoots by key
         $this->_opponentsShoots[$key] += $isHit;
 
-        // @TODO
-        $hitCells = array();
-        $_removedHitShoots = array();
-        $_shipStats = array();
-        foreach ($this->_hitShoots as $_k => $hitShoot) {
-            if (!is_null($hitShoot)) { continue; }
-            list($_r, $_c) = static::keyR($_k);
-            $relCells = $this->getRelativeCells($_r, $_c);
-            foreach ($relCells as $__k2 => $relCell) {
-                if (!$this->_hitShoots[$__k2]) { continue; }
-                $containCells = array($_k, $__k2);
-                $availCells = array();
-                foreach ($this->_ships as $ship) {
-                    if (!$ship['osunk']) {
-                        $options = array('merge_cells' => true);
-                        $shipAvailCells = $this->_shipContainCells($containCells, $ship, $options);
-                        $availCells = array_replace($availCells, $shipAvailCells);
-                        // if (is_array($options['merge_cells'])) { $_shipStats[] = $options['merge_cells']; }
-                    }
-                }
-                $hitCells[] = implode('/', $containCells) . '[' . count($availCells) . ']';
-                // $availCells se la danh sach cells co the ban trung (hit shoot)
-                // Neu, cells nao trong danh sach hitShoots hien tai khong nam trong mang
-                // nay thi loai bo (vi chac chan se khong trung)
-                if (empty($availCells)) {
-                    $this->_hitShoots[$_k] = 0; // Ghi nhan da ban truot (missed)!
-                    // @TODO: ???
-                    // $this->_shoots[$_k] = 0; // Ghi nhan da ban truot (missed)!
-                    //
-                    $_removedHitShoots[] = $_k; // debug
-                }
-            }
-        } unset($_k, $_availCells, $options, $hitShoot);
-        // var_dump('$hitCells: ' . implode(' | ', $hitCells));
-        if (!empty($_removedHitShoots)) {
-            var_dump('$removedHitShoots: ', $_removedHitShoots);
-            // var_dump('$shipStats: ', $_shipStats);
-            // var_dump('$availCells: ', $availCells);
-        }
+        // @TODO: Remove unnecessary hit shoots
+        $this->_removeUnnecessaryHitShoots();
         // #end
         
+        // @TODO:
         // Trace hit shoots?
         if ($oShipSunk) {
-            // @TODO:
             // Kiem tra lai lich su ban tau so voi vi tri tau (game engine gui len).
             // Neu, van con hit cell nam ngoai vi tri tau --> chac 100% la van con tau gan ben.
+            // ...
             
+            // Sau khi ban chim tau. Trong ds cells chua ban cua tau thi co 50/50% kha nang
+            // La co tau ke ben tau chim. Can can doi giua viec tiep tuc ban het tat ca o (cells)
+            // trong ds nay, hoac la di chuyen tiep vi tri khac?! 
             // Lay ds tat ca cells chua ban cua ship
             $nullHitShootCells = array();
             foreach ((array)$oShipSunk['position'] as $pos) {
@@ -371,15 +332,17 @@ class Board {
             if ($leepCnt > 0) {
                 for ($i = 0; $i < $leepCnt; $i++) {
                     $_k = $nullHitShootCells[rand(0, count($nullHitShootCells) - 1)];
-                    $this->_hitShoots[$_k] = 0;
+                    // @TODO: use this feature? 
+                    // $this->_hitShoots[$_k] = 0;
                 }
                 var_dump('$nullHitShootCells: ' . implode(' | ', $nullHitShootCells));
             }
         }
         // #end
 
-        //
-        // $this->checkAvail();
+        // Kiem tra tinh du thua cua cac o (cells) --> loai bo.
+        $this->checkAvail();
+        // #end
     }
     
     /**
@@ -539,52 +502,86 @@ class Board {
     }
     
     /**
-     *
+     * Sau khi ban trung 1 diem (hit shoot), ta se chuyen sang [target mode].
+     * Tim nhung o (cells) lien quan cua o (cell) da ban trung de ban tiep tuc.
+     * Trong nhieu truong hop, cac o (cells) nay la du thua.
+     * Ham nay giup kiem tra + loai bo cac o (cells) du thua.
      */
-
-    public function checkAvail($data = null) {
-        // Started with a board 
-        $matrix = array();
-        
-        $cnt = 0;
-        $shipDirc = array(Ship::DIREC_P, Ship::DIREC_L);
-        foreach ($this->_ships as $ship) {
-            // @TODO: tau da bi ban chim --> khong xu ly
-            if ($ship['osunk']) {
+    protected function _removeUnnecessaryHitShoots() {
+        $hitCells = array();
+        $removedHitShoots = array();
+        // $shipStats = array();
+        $options = array('merge_cells' => true);
+        foreach ($this->_hitShoots as $_k => $hitShoot) {
+            if (!is_null($hitShoot)) {
                 continue;
             }
-            for ($row = 1; $row <= $this->_rows; $row++) {
-                for ($col = 1; $col <= $this->_cols; $col++) {
-                    // Neu cell do da ban roi --> skip..!
-                    $key = static::key($row, $col);
-                    if (!is_null($this->_shoots[$key])) {
-                        continue;
+            list($_r, $_c) = static::keyR($_k);
+            $relCells = $this->getRelativeCells($_r, $_c);
+            foreach ($relCells as $__k => $relCell) {
+                if (!$this->_hitShoots[$__k]) {
+                    continue;
+                }
+                $containCells = array($_k, $__k);
+                $availCells = array();
+                foreach ($this->_ships as $ship) {
+                    if (!$ship['osunk']) {
+                        $shipAvailCells = $this->_shipContainCells($containCells, $ship, $options);
+                        $availCells = array_replace($availCells, $shipAvailCells);
+                        // if (is_array($options['merge_cells'])) { $shipStats[] = $options['merge_cells']; }
                     }
-                    foreach ($shipDirc as $dirc) {
-                        // Cells of a ship by row:col...
-                        $shipStats = $this->_getShipStats($ship['type'], $dirc, $row, $col);
-                        // Case: this ship placed succeed on board!
-                        if ($shipStats['total_missed'] <= 0) {
-                            $cellKeys = array_flip(array_keys($shipStats['cells']));
-                            $matrix = array_replace($matrix, $cellKeys);
-                        }
-                    }
+                }
+                $hitCells[] = implode('/', $containCells) . '[' . count($availCells) . ']';
+                // $availCells se la danh sach cells co the ban trung (hit shoot)
+                // Neu, cells nao trong danh sach hitShoots hien tai khong nam trong mang
+                // nay thi loai bo (vi chac chan se khong trung)
+                if (empty($availCells)) {
+                    $this->_hitShoots[$_k] = 0; // Ghi nhan da ban truot (missed)!
+                    // @TODO: ???
+                    // $this->_shoots[$_k] = 0; // Ghi nhan da ban truot (missed)!
+                    //
+                    $removedHitShoots[] = $_k;
                 }
             }
         }
-        var_dump('cnt 1) ' . count($this->_shoots));
-        $matrix = array_filter($matrix, function($hit){ return $hit <= 0; });
-        for ($row = 1; $row <= $this->_rows; $row++) {
-            for ($col = 1; $col <= $this->_cols; $col++) {
-                $key = static::key($row, $col);
-                if (is_null($matrix[$key]) && is_null($this->_shoots[$key])) {
-                    $this->_shoots[$key] = 0;
-                }
-            }
+        // var_dump('$hitCells: ' . implode(' | ', $hitCells));
+        if (!empty($removedHitShoots)) {
+            var_dump('$removedHitShoots: ', $removedHitShoots);
+            // var_dump('$shipStats: ', $shipStats);
         }
-        var_dump('cnt 2) ' . count($this->_shoots));
-        echo '<pre>$matrix '; var_dump($matrix); echo '</pre>';
-        die();
+    }
+    
+    /**
+     * Kiem tra tinh du thua cua cac o (cells) --> loai bo.
+     */
+    public function checkAvail($data = null) {
+        // Started with a board that all cells are unavailable!
+        $cells = array();
+        //
+        $this->_mapCellWithOShipAndDirc(function($ship, $dirc, $row, $col, $key) use (&$cells) {
+            // Stats of a ship by row:col...
+            $shipStats = $this->_getShipStats($ship['type'], $dirc, $row, $col);
+            // Case: this ship placed succeed on board!
+            if ($shipStats['total_missed'] <= 0) {
+                $cellKeys = $shipStats['cells'];
+                $cells = array_replace($cells, $cellKeys);
+            }
+        });
+        $cells = array_filter($cells, function($input){
+            list($_r, $_c, $opts) = $input;
+            return intval($opts['hit']) <= 0;
+        });
+        //
+        $autoShoots = array();
+        $this->_mapCell(function($row, $col, $key) use (&$cells, &$autoShoots) {
+            if (is_null($cells[$key]) && is_null($this->_shoots[$key])) {
+                $this->_shoots[$key] = false;
+                $autoShoots[] = $key;
+            }
+        });
+        if (!empty($autoShoots)) {
+            echo '<pre>$autoShoots '; var_dump($autoShoots); echo '</pre>';
+        }
     }
     
     /**
@@ -637,15 +634,35 @@ class Board {
     /**
      * 
      */
-    protected function _mapCell($caller) {
+    protected function _mapCell($caller, $rowMin = null, $colMin = null, $rowMax = null, $colMax = null) {
         $return = null;
-        for ($row = 1; $row <= $this->_rows; $row++) {
-            for ($col = 1; $col <= $this->_cols; $col++) {
+        for ($row = ($rowMin ?: 1); $row <= ($rowMax ?: $this->_rows); $row++) {
+            for ($col = ($colMin ?: 1); $col <= ($colMax ?: $this->_cols); $col++) {
                 $key = static::key($row, $col);
                 $return = call_user_func($caller, $row, $col, $key);
                 if (false === $return) { break; }
             }
             if (false === $return) { break; }
+        }
+        return $return;
+    }
+    
+    /**
+     *
+     */
+    protected function _mapCellWithOShipAndDirc($caller) {
+        $return = null;
+        $shipDirc = Ship::returnDirecArr(); // Ship directions
+        foreach ($shipDirc as $dirc) {
+            foreach ($this->_ships as $ship) {
+                if ($ship['osunk']) { // Tau da bi ban chim --> khong xu ly
+                    continue;
+                }
+                $return = $this->_mapCell(function($row, $col, $key) use (&$caller, $ship, $dirc) {
+                    return $caller($ship, $dirc, $row, $col, $key);
+                });
+                if (false === $return) { break; }
+            }
         }
         return $return;
     }
