@@ -9,10 +9,17 @@ class Generalship
 {
     protected $_config = array();
     protected $_data = array();
+    protected $_ships = array();
+    private $_board = array();
 
     public function __construct(array $config)
     {
         $this->_config = $config;
+        for ($row = 0; $row < 8; $row++) {
+            for ($col = 0; $col < 20; $col++) {
+                $this->_board[$row][$col] = 0;
+            }
+        }
     }
 
     /**
@@ -23,7 +30,76 @@ class Generalship
         if (empty($this->_data)) {
             $shipPresets = require_once __DIR__ . '/ship-presets.php';
             $this->_data = $shipPresets[rand(0, count($shipPresets) - 1)]; // Pick random
+//            $this->_data = $shipPresets[0]; // Pick random
         }
         return $this->_data;
+    }
+
+    public function initMatchTest()
+    {
+        if (empty($this->_data)) {
+            foreach ($this->_config as $shipData) {
+                for ($count = 0; $count < $shipData['number']; $count++) {
+                    $ship = $this->randomShip($shipData['type']);
+                    $this->_data[] = $ship;
+                    $this->drawShip($this->_ships[$ship['x'] . '_' . $ship['y']]);
+                }
+            }
+        }
+        return $this->_data;
+    }
+
+    private function randomShip($type)
+    {
+        $x = rand(1, 20);
+        $y = rand(1, 8);
+        $ship = array(
+            'type' => $type,
+            'x' => $x,
+            'y' => $y,
+            'direction' => rand(0, 1)
+        );
+        $shipData = (new Ship($ship['type'], $ship))->toArr();
+
+        if (!$this->checkAvailable($shipData)) {
+            return $this->randomShip($type);
+        }
+
+        $this->_ships[$x . '_' . $y] = $shipData;
+
+        return $ship;
+    }
+
+    private function checkAvailable($shipData)
+    {
+        $y = $shipData['y'] - 1;
+        foreach ($shipData['matrix'] as $row) {
+            $x = $shipData['x'] - 1;
+            foreach ($row as $cell) {
+                if (!isset($this->_board[$y][$x])) {
+                    return false;
+                }
+                if ($this->_board[$y][$x]) {
+                    return false;
+                }
+                $x++;
+            }
+            $y++;
+        }
+        return true;
+    }
+
+    private function drawShip($shipData)
+    {
+        $y = $shipData['y'] - 1;
+        foreach ($shipData['matrix'] as $row) {
+            $x = $shipData['x'] - 1;
+            foreach ($row as $cell) {
+                $this->_board[$y][$x] = $cell;
+                $x++;
+            }
+            $y++;
+        }
+        return $this;
     }
 }

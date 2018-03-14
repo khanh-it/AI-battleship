@@ -107,8 +107,14 @@ class Board {
     protected function _initShips($data = null) {
         if (is_null($this->_ships)) {
             require_once __DIR__ . '/generalship.php';
-            $shipPresets = new Generalship([]);
-            $shipPreset = $shipPresets->_initMatch(); // Pick random
+            $shipPresets = new Generalship([
+                ['type' => Ship::TYPE_AIRCRAFT, 'number' => 2],
+                ['type' => Ship::TYPE_BATTLESHIP, 'number' => 2],
+                ['type' => Ship::TYPE_CRUISER, 'number' => 3],
+                ['type' => Ship::TYPE_DESROYER, 'number' => 2],
+                ['type' => Ship::TYPE_SUBMARINE, 'number' => 2],
+            ]);
+            $shipPreset = $shipPresets->initMatchTest(); // Pick random
             // $shipPreset = $shipPresets[4]; // debug
             foreach ($shipPreset as $shipP) {
                 $this->_ships[] = (new Ship($shipP['type'], $shipP))->toArr();
