@@ -6,7 +6,8 @@
 	/**
 	 | @var string
 	 */
-	var SESSID = (new Date()).toISOString().substring(0, 10); // + Date.now();
+	// var SESSID = (new Date()).toISOString().substring(0, 10); // + Date.now();
+    var SESSID = (new Date()).toISOString().substring(0, 10) + Date.now();
 
 	/**
 	 |
