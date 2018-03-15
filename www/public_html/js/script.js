@@ -6,7 +6,7 @@
 	/**
 	 | @var string
 	 */
-	var SESSID = (new Date()).toISOString().substring(0, 10); // + Date.now();
+	var SESSID = (new Date()).toISOString().substring(0, 10) + Date.now();
 
 	/**
 	 |
@@ -41,7 +41,7 @@
 		 | Init board (render board with cols and rows)
 		 */
 		init: function render(container) {
-			var html = '<table class="table table-striped table-bordered table-condensed">';
+			var html = '<table class="table table-striped table-bordered table-condensed" data->';
 			for (var row = 1; row <= this.rows; row++) {
 				html += '<tr class="row' + row + '">';
 				for (var col = 1; col <= this.cols; col++) {
@@ -60,6 +60,7 @@
 		 */
 		renderShips: function renderShips(ships) {
 			ships = (ships instanceof Array) ? ships : [ships];
+			var shipName = '', shipNames = {}, shipCnt = 0;
 			for (var ship of (ships || [])) {
 				var vector = []; var num = 0;
 				for (var row = 0; row < ship.matrix.length; row++) {
@@ -78,11 +79,17 @@
 							alert('Critial error: ships overlapped. Slt: ' + slt + '.');
 							return;
 						}
-						$td.attr('data-ship', (ship.name || ship.type));
+						shipName = $.trim(ship.name || ship.type);
+						$td.addClass(shipName);
+						shipName += ('0' + shipCnt).slice(-2);
+						$td.attr('data-ship', shipName);
+						shipNames[shipName] = 1;
 						// console.log('slt: ', slt, ' - $td: ',  $td.get(0));
 					}
 				}
+				shipCnt++;
 			}
+			console.log('shipNames: ', shipNames);
 		},
 		/**
 		 | Render shoots
@@ -122,7 +129,7 @@
 							position.push({ x: col, y: row });
 						});
 						isHit = {
-							'type': ship,
+							'type': ship.slice(0, -2),
 							'position': position
 						};
 					}
@@ -132,13 +139,12 @@
 				$tdShips = this._$board.find('td[data-ship]');
 				$tdShoots = $tdShips.filter('td[data-shoot]');
 				if ($tdShips.length == $tdShoots.length) {
-					setTimeout(function(){
-						alert('Game end!!!');
-					}, 512);
+					this._$board.attr('data-game_end', 1);
+					setTimeout(function(){ alert('Game end!!!'); }, 256);
 				}
 			}
 			this._shootCnt += 1;
-			console.log('shoot#' + this._shootCnt + ' data: ', data, ' - isHit: ', isHit);
+			console.log('shoot#' + this._shootCnt + ' data: ', (data.y + ':' + data.x), ' - isHit: ', isHit);
 			return isHit;
 		},
 		/**

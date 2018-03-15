@@ -3,7 +3,7 @@ return array(
     /* 1 */
     array(
         array(
-            'type' => 'Aircraft',
+            'type' => 'Carrier',
             'x' => 2,
             'y' => 2,
             'direction' => 1
@@ -15,7 +15,7 @@ return array(
             'direction' => 0
         ),
         array(
-            'type' => 'Submarine',
+            'type' => 'OilRig',
             'x' => 19,
             'y' => 3,
             'direction' => 0
@@ -37,7 +37,7 @@ return array(
     /* 2 */
     array(
         array(
-            'type' => 'Aircraft',
+            'type' => 'Carrier',
             'x' => 2,
             'y' => 4,
             'direction' => 0
@@ -49,7 +49,7 @@ return array(
             'direction' => 1
         ),
         array(
-            'type' => 'Submarine',
+            'type' => 'OilRig',
             'x' => 17,
             'y' => 3,
             'direction' => 0
@@ -71,7 +71,7 @@ return array(
     /* 3 */
     array(
         array(
-            'type' => 'Aircraft',
+            'type' => 'Carrier',
             'x' => 2,
             'y' => 6,
             'direction' => 1
@@ -83,7 +83,7 @@ return array(
             'direction' => 1
         ),
         array(
-            'type' => 'Submarine',
+            'type' => 'OilRig',
             'x' => 16,
             'y' => 4,
             'direction' => 0
@@ -105,7 +105,7 @@ return array(
     /* 4 */
     array(
         array(
-            'type' => 'Aircraft',
+            'type' => 'Carrier',
             'x' => 4,
             'y' => 4,
             'direction' => 0
@@ -117,7 +117,7 @@ return array(
             'direction' => 1
         ),
         array(
-            'type' => 'Submarine',
+            'type' => 'OilRig',
             'x' => 16,
             'y' => 6,
             'direction' => 0
@@ -138,7 +138,7 @@ return array(
     /* 5 */
     array(
         array(
-            'type' => 'Aircraft',
+            'type' => 'Carrier',
             'x' => 2,
             'y' => 2,
             'direction' => 1
@@ -150,7 +150,7 @@ return array(
             'direction' => 0
         ),
         array(
-            'type' => 'Submarine',
+            'type' => 'OilRig',
             'x' => 9,
             'y' => 3,
             'direction' => 0
