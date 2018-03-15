@@ -91,12 +91,11 @@
 		 */
 		renderShoots: function renderShoots(shoots) {
 			var shoot = null, cnt = 0, $td = null;
-			for (var y in (shoots || {})) {
-				shoot = shoots[y];
-				for (var x in (shoot || {})) {
-					cnt = 1 * shoot[y];
-					$td = this._styleTdShoot(x, y);
-				}
+			for (var key in (shoots || {})) {
+				key = key.split(':');
+				var y = key[0], x = key[1];
+				cnt = 1 * shoots[key];
+				$td = this._styleTdShoot(x, y);
 			}
 		},
 		/**
