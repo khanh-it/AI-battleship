@@ -8,21 +8,6 @@ require_once('ship.php');
  */
 class Board {
     /**
-     * @var integer
-     */
-    const TYPE_P = 1; // portrait
-
-    /**
-     * @var integer
-     */
-    const TYPE_L = 2; // landscape
-
-    /**
-     * @var integer
-     */
-    protected $_type = null;
-    
-    /**
      * @var array of Ship
      */
     protected $_ships;
@@ -30,12 +15,12 @@ class Board {
     /**
      * @var integer
      */
-    protected $_cols = 0;
+    protected $_cols = 20;
     
     /**
      * @var integer
      */
-    protected $_rows = 0;
+    protected $_rows = 8;
     
     /**
      * @var array
@@ -65,7 +50,7 @@ class Board {
     /**
      * @var integer Maximun number of missed shoot per block
      */
-    protected $_shoots_per_block = 5;
+    protected $_shoots_per_block = 4;
     
     /**
      * Build string key from $row, $col
@@ -107,13 +92,14 @@ class Board {
     protected function _initShips($data = null) {
         if (is_null($this->_ships)) {
             require_once __DIR__ . '/generalship.php';
-            $shipPresets = new Generalship([
-                ['type' => Ship::TYPE_AIRCRAFT, 'number' => rand(1, 4)],
-                ['type' => Ship::TYPE_BATTLESHIP, 'number' => rand(1,5)],
-                ['type' => Ship::TYPE_CRUISER, 'number' => rand(1,6)],
-                ['type' => Ship::TYPE_DESROYER, 'number' => rand(1,6)],
-                ['type' => Ship::TYPE_SUBMARINE, 'number' => rand(2,8)],
-            ]);
+            $generateConfigs = [
+                ['type' => Ship::TYPE_CARRIER, 'number' => rand(1, 3)],
+                ['type' => Ship::TYPE_BATTLESHIP, 'number' => rand(1, 3)],
+                ['type' => Ship::TYPE_CRUISER, 'number' => rand(1, 3)],
+                ['type' => Ship::TYPE_DESROYER, 'number' => rand(1, 3)],
+                ['type' => Ship::TYPE_OILRIG, 'number' => rand(1, 3)]
+            ];
+            $shipPresets = new Generalship($generateConfigs);
             $shipPreset = $shipPresets->initMatchTest(); // Pick random
             // $shipPreset = $shipPresets[4]; // debug
             foreach ($shipPreset as $shipP) {
@@ -189,8 +175,8 @@ class Board {
             $this->_mapCell(function($row, $col, $key) use (&$cells, &$oeCells) {
                 if (is_null($this->_shoots[$key])) {
                     $cells[] = ($cell = array($row, $col, $key));
-                    // @TODO: odd or even?
-                    if (($row + $col) % 2 == 0) { // odd
+                    // @TODO: pairity?
+                    if (($row + $col) % 2 == 0) { // even
                         $oeCells[] = $cell;
                     }
                 }
@@ -252,7 +238,6 @@ class Board {
         //
         $key = static::key($data['y'], $data['x']);
         $isHit = $data['is_hit'];
-        $isHit = 0;
         // Opponent's ship sunk?
         $oShipSunk = null;
         // Case: normal hit
@@ -321,12 +306,14 @@ class Board {
             // Lay ds tat ca cells chua ban cua ship
             $nullHitShootCells = array();
             foreach ((array)$oShipSunk['position'] as $pos) {
-                $relCells = $this->getRelativeCells($pos['y'], $pos['x']);
+                $relCells = $this->getRelativeCells($_r = $pos['y'], $_c = $pos['x']);
                 foreach ($relCells as $_k => $relCell) {
                     if (array_key_exists($_k, $this->_hitShoots) && is_null($this->_hitShoots[$_k])) {
                         $nullHitShootCells[] = $_k;
                     }
                 }
+                // Chuyen tat ca o (cells) cua tau ve (false), --> ho tro checkAvail!
+                $this->_shoots[static::key($_r, $_c)] = false;
             }
             $leepCnt = count($nullHitShootCells) - 4 /* max null hit shoot count */;
             if ($leepCnt > 0) {
@@ -352,20 +339,6 @@ class Board {
         // Format data
         $data = is_array($data) ? $data: array();
         //
-        $this->_type = (static::TYPE_P == $data['type']) ? static::TYPE_P : static::TYPE_L;
-        if (static::TYPE_P == $this->_type) {
-            $this->_cols = 8;
-            $this->_rows = 20;
-        } else {
-            $this->_cols = 20;
-            $this->_rows = 8;
-        }
-        /* if (is_numeric($data['cols']) && $data['cols'] > 0) {
-            $this->_cols = $data['cols'];
-        }
-        if (is_numeric($data['rows']) && $data['rows'] > 0) {
-            $this->_rows = $data['rows'];
-        } */
         if (is_array($data['ships'])) {
             $this->_ships = $data['ships'];
         }
@@ -536,9 +509,9 @@ class Board {
                 // Neu, cells nao trong danh sach hitShoots hien tai khong nam trong mang
                 // nay thi loai bo (vi chac chan se khong trung)
                 if (empty($availCells)) {
-                    $this->_hitShoots[$_k] = 0; // Ghi nhan da ban truot (missed)!
-                    // @TODO: ???
-                    // $this->_shoots[$_k] = 0; // Ghi nhan da ban truot (missed)!
+                    $this->_hitShoots[$_k] = false; // Ghi nhan da ban truot (missed)!
+                    // @TODO: use this???
+                    // $this->_shoots[$_k] = false; // Ghi nhan da ban truot (missed)!
                     //
                     $removedHitShoots[] = $_k;
                 }
@@ -585,7 +558,7 @@ class Board {
     }
     
     /**
-     * 
+     * @TODO: fix bug
      */
     protected function _getShipStats($type, $direction, $startRow, $startCol) {
         $totalCell = 0;
@@ -672,7 +645,6 @@ class Board {
      */
     public function toArr() {
         $return = array(
-            // 'type' => $this->_type,
             // 'cols' => $this->_cols,
             // 'rows' => $this->_rows,
             'hit_shoots' => $this->_hitShoots,

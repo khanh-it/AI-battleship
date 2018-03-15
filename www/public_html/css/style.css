@@ -15,7 +15,7 @@
 	padding: 0;
 }
 #grids table td:not([data-shoot]) {
-	/*background-color: transparent !important;*/
+	/* background-color: transparent !important; */
 }
 #grids table td:nth-child(4n+0) {
 	border-right: 2px dotted red;
@@ -31,6 +31,9 @@
     top: 1px;
     font-size: 10px;
 }
+#grids table:not([data-game_end]) td[data-shoot]{
+	background-color: silver !important
+}
 #grids table td[data-shoot] {
 	border: dashed 2px red;
 	color: red;
@@ -44,28 +47,26 @@
 #grids table td[data-shoot][data-ship] > div::after {
 	content: 'o';
 }
-#grids table td[data-ship] {
-	/* border: none 0 !important; */
-}
+#grids table td[data-ship] {}
 #grids table td[data-ship][data-shoot] {
 	border: dashed 2px green !important;
 	color: green;
 }
-#grids table td[data-ship="Aircraft"] {
+#grids table td.Carrier {
 	background-color: saddlebrown;
 }
-#grids table td[data-ship="Battleship"] {
+#grids table td.Battleship {
 	background-color: slateblue;
 }
-#grids table td[data-ship="Submarine"] {
+#grids table td.OilRig {
 	background-color: steelblue;
 }
-#grids table td[data-ship="Cruiser"] {
+#grids table td.Cruiser {
 	background-color: tomato;
 }
-#grids table td[data-ship="Aircraft"] {
+#grids table td.Carrier {
 	background-color: violet;
 }
-#grids table td[data-ship="Destroyer"] {
+#grids table td.Destroyer {
 	background-color: yellowgreen;
 }
