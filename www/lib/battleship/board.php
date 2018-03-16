@@ -15,12 +15,12 @@ class Board {
     /**
      * @var integer
      */
-    protected $_cols = 20;
+    public static $cols = 20;
     
     /**
      * @var integer
      */
-    protected $_rows = 8;
+    public static $rows = 8;
     
     /**
      * @var array
@@ -81,15 +81,16 @@ class Board {
      */
     public function __construct(array $data = null) {
         $this->fromArr($data);
-        $this->_initShips($data);
     }
 
     /**
-     * Load ships (on board)
+     * Invite
      * @param array $data Request data
      * @return Battleship
      */
-    protected function _initShips($data = null) {
+    public function invite($data = null) {
+        // init ships
+        echo '<pre>invite '; var_dump($data); echo '</pre>';die();
         if (is_null($this->_ships)) {
             require_once __DIR__ . '/generalship.php';
             $generateConfigs = [
@@ -129,7 +130,7 @@ class Board {
         $cells = array();
         foreach ($tmp as $idx => $cell) {
             list($_r, $_c) = $cell;
-            if ($_r <= 0 || $_r > $this->_rows || $_c <= 0 || $_c > $this->_cols) {
+            if ($_r <= 0 || $_r > static::$rows || $_c <= 0 || $_c > static::$cols) {
                 continue;
             }
             $cells[static::key($_r, $_c)] = $cell;
@@ -234,7 +235,7 @@ class Board {
      * Their shoot
      * @return array
      */
-    public function shootAt($data) {
+    public function notify($data) {
         //
         $key = static::key($data['y'], $data['x']);
         $isHit = $data['is_hit'];
@@ -263,8 +264,8 @@ class Board {
             foreach ($cells as $cell) {
                 list($row, $col) = $cell;
                 $_k = static::key($row, $col);
-                if (($row < 1 || $row > $this->_rows)
-                    || ($col < 1 || $col > $this->_cols)
+                if (($row < 1 || $row > static::$rows)
+                    || ($col < 1 || $col > static::$cols)
                     || (!is_null($this->_shoots[$_k]) && $_k != $key)
                 ) {
                     continue;
@@ -366,8 +367,8 @@ class Board {
      */
     protected function _buildData() {        
         $blockCellCnt = 4;
-        for ($col = 1; $col <= $this->_cols; $col++) {
-            for ($row = 1; $row <= $this->_rows; $row++) {
+        for ($col = 0; $col < static::$cols; $col++) {
+            for ($row = 0; $row < static::$rows; $row++) {
                 $blockCol = ceil($col / $blockCellCnt); 
                 $blockRow = ceil($row / $blockCellCnt);
                 //
@@ -433,8 +434,8 @@ class Board {
         $maxCellCnts = 0;
         $shootBlocksCenter = array();
         $shootBlocksEdges = array();
-        for ($bR = 1; $bR <= count($this->_blocks); $bR++) {
-            for ($bC = 1; $bC <= count($this->_blocks[$bR]); $bC++) {
+        for ($bR = 0; $bR < count($this->_blocks); $bR++) {
+            for ($bC = 0; $bC < count($this->_blocks[$bR]); $bC++) {
                 list($num, $cellsCnt) = $this->_numOfCellsShoot($bR, $bC, array('cells_count' => true)); // num of cells shoot
                 $lessShootPerBlock = ($num < $this->_shoots_per_block);
                 // Blocks from centers
@@ -509,8 +510,8 @@ class Board {
                 // Neu, cells nao trong danh sach hitShoots hien tai khong nam trong mang
                 // nay thi loai bo (vi chac chan se khong trung)
                 if (empty($availCells)) {
-                    $this->_hitShoots[$_k] = false; // Ghi nhan da ban truot (missed)!
                     // @TODO: use this???
+                    // $this->_hitShoots[$_k] = false; // Ghi nhan da ban truot (missed)!
                     // $this->_shoots[$_k] = false; // Ghi nhan da ban truot (missed)!
                     //
                     $removedHitShoots[] = $_k;
@@ -568,12 +569,12 @@ class Board {
         $matrix = Ship::matrixByType($type, $direction);
         foreach ($matrix as $_r => $line) { // zero based
             $row = ($startRow + $_r);
-            if ($row > $this->_rows) {
+            if ($row > static::$rows) {
                 continue;
             }
             foreach ($line as $_c => $dot) {
                 $col = ($startCol + $_c);
-                if ($dot && $col <= $this->_cols) {
+                if ($dot && $col <= static::$cols) {
                     $key = static::key($row, $col);
                     //
                     $totalCell += 1;
@@ -609,8 +610,8 @@ class Board {
      */
     protected function _mapCell($caller, $rowMin = null, $colMin = null, $rowMax = null, $colMax = null) {
         $return = null;
-        for ($row = ($rowMin ?: 1); $row <= ($rowMax ?: $this->_rows); $row++) {
-            for ($col = ($colMin ?: 1); $col <= ($colMax ?: $this->_cols); $col++) {
+        for ($row = ($rowMin ?: 1); $row <= ($rowMax ?: static::$rows); $row++) {
+            for ($col = ($colMin ?: 1); $col <= ($colMax ?: static::$cols); $col++) {
                 $key = static::key($row, $col);
                 $return = call_user_func($caller, $row, $col, $key);
                 if (false === $return) { break; }
@@ -645,8 +646,6 @@ class Board {
      */
     public function toArr() {
         $return = array(
-            // 'cols' => $this->_cols,
-            // 'rows' => $this->_rows,
             'hit_shoots' => $this->_hitShoots,
             'shoots' => $this->_shoots,
             'shoots_per_block' => $this->_shoots_per_block,

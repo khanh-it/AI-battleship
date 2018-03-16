@@ -52,21 +52,18 @@
 	border: dashed 2px green !important;
 	color: green;
 }
-#grids table td.Carrier {
+#grids table td.CV {
 	background-color: saddlebrown;
 }
-#grids table td.Battleship {
+#grids table td.BB {
 	background-color: slateblue;
 }
-#grids table td.OilRig {
+#grids table td.OR {
 	background-color: steelblue;
 }
-#grids table td.Cruiser {
+#grids table td.CA {
 	background-color: tomato;
 }
-#grids table td.Carrier {
-	background-color: violet;
-}
-#grids table td.Destroyer {
+#grids table td.DD {
 	background-color: yellowgreen;
 }

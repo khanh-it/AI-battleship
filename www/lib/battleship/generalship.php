@@ -1,5 +1,7 @@
 <?php
-
+//
+require_once __DIR__ . '/board.php';
+require_once __DIR__ . '/ship.php';
 /**
  * User: Tin NT
  * Date: 3/13/2018
@@ -15,8 +17,8 @@ class Generalship
     public function __construct(array $config)
     {
         $this->_config = $config;
-        for ($row = 0; $row < 8; $row++) {
-            for ($col = 0; $col < 20; $col++) {
+        for ($row = 0; $row < Board::$rows; $row++) {
+            for ($col = 0; $col < Board::$cols; $col++) {
                 $this->_board[$row][$col] = 0;
             }
         }
@@ -51,13 +53,14 @@ class Generalship
 
     private function randomShip($type)
     {
-        $x = rand(1, 20);
-        $y = rand(1, 8);
+        $direcArr = Ship::returnDirecArr();
+        $x = rand(0, Board::$cols - 1);
+        $y = rand(0, Board::$rows - 1);
         $ship = array(
             'type' => $type,
             'x' => $x,
             'y' => $y,
-            'direction' => rand(0, 1)
+            'direction' => $direcArr[rand(0, count($direcArr) - 1)]
         );
         $shipData = (new Ship($ship['type'], $ship))->toArr();
 
@@ -72,9 +75,9 @@ class Generalship
 
     private function checkAvailable($shipData)
     {
-        $y = $shipData['y'] - 1;
+        $y = $shipData['y'];
         foreach ($shipData['matrix'] as $row) {
-            $x = $shipData['x'] - 1;
+            $x = $shipData['x'];
             foreach ($row as $cell) {
                 if (!isset($this->_board[$y][$x])) {
                     return false;
@@ -91,9 +94,9 @@ class Generalship
 
     private function drawShip($shipData)
     {
-        $y = $shipData['y'] - 1;
+        $y = $shipData['y'];
         foreach ($shipData['matrix'] as $row) {
-            $x = $shipData['x'] - 1;
+            $x = $shipData['x'];
             foreach ($row as $cell) {
                 $this->_board[$y][$x] = $cell;
                 $x++;

@@ -8,6 +8,16 @@ require_once('board.php');
  */
 class Battleship {
     /**
+     * @var string X-SESSION-ID
+     */
+    protected $_X_SESSION_ID = '';
+
+    /**
+     * @var string X-TOKEN
+     */
+    protected $_X_TOKEN = '';
+
+    /**
      * @var string Data directory path
      */
     protected $_data_dir = '';
@@ -20,11 +30,7 @@ class Battleship {
     /**
      * 
      */
-	protected $_response = array(
-		'status' => 1,
-		'msg' => '',
-		'data' => array()
-	);
+	protected $_response = array();
 	
 	/**
      * @var Board
@@ -35,38 +41,54 @@ class Battleship {
      * 
      */
     protected function _formatRequest($request) {
+        preg_match('/\/([^\/]+)\/?/', $_SERVER['REQUEST_URI'], $type) && ($type = $type[1]);
         return array(
-            'type' => $request['type'],
-            'data' => $request['data']
+            'type' => strtolower($type),
+            'data' => $request
         );
 	}
 	
 	/**
+	 * Get game-engine header 'X-SESSION-ID'
 	 * @return string
 	 */
-	public static function getGameSessionID() {
-	    $ID = trim($_REQUEST['data']['sessionid']);
-	    $ID = $ID ?: date('Ymd');
-	    // $ID .= date('_H');
-	    /* $i = date('i'); // minutes
-	    if ($i >= 30) {
-	        $i = 30;
-	    } else {
-	        $i = 0;
-	    }
-	    $ID .= str_pad($i, 2, '0', STR_PAD_LEFT); */
-	    return $ID;
+	public static function getHeaderSessionID() {
+	    $headers = array_map(strtoupper, array_replace(
+	        $_SERVER, (array)headers_list()
+        ));
+	    $return = $headers['X-SESSION-ID'] ?: ($headers['X_SESSION_ID'] ?: (
+            $headers['HTTP-X-SESSION-ID'] ?: $headers['HTTP_X_SESSION_ID']
+        ));
+	    return $return;
+	}
+	
+	/**
+	 * Get game-engine header 'X-TOKEN'
+	 * @return string
+	 */
+	public static function getHeaderToken() {
+	    $headers = array_map(strtoupper, array_replace(
+	        $_SERVER, (array)headers_list()
+        ));
+	    $return = $headers['X-TOKEN'] ?: ($headers['X_TOKEN'] ?: (
+	        $headers['HTTP-X-TOKEN'] ?: $headers['HTTP_X_TOKEN']
+        ));
+	    return $return;
 	}
 	
 	/**
 	 *
 	 */
-	public function response($data, $msg = null) {
-	    if ($msg) {
-	        $this->_response['status'] = 0;
-	        $this->_response['msg'] = $msg;
+	public function response($data, $error = null) {
+	    // Headers
+	    header('X-SESSION-ID: ' . $this->_X_SESSION_ID);
+	    header('X-TOKEN: ' . $this->_X_TOKEN);
+	    // Body
+	    if ($error) {
+	        $this->_response['error'] = $error;
+	    } else {
+	        $this->_response = (array)$data;
 	    }
-	    $this->_response['data'] = $data;
 	    //
 	    return static::resJSON($this->_response);
 	}
@@ -85,7 +107,11 @@ class Battleship {
 	 * @param array $options
 	 */
 	public function __construct(array $options = array()) {
-	    // Init game data
+	    // Init
+	    // +++ game engine headers
+	    $this->_X_SESSION_ID = static::getHeaderSessionID();
+	    $this->_X_TOKEN = static::getHeaderToken();
+	    // +++ game data
 	    $dataDir = realpath($options['data_dir']);
 	    if (!$dataDir) {
 	        throw new Exception('Data directory info is required!');
@@ -95,7 +121,7 @@ class Battleship {
 	    $this->_loadGameData();
 	    // #end
 
-	    // Init board
+	    // Init board?
 	    $this->_board = new Board($this->_data['board']);
 	    // #end
 	    
@@ -116,20 +142,20 @@ class Battleship {
 		//
 		switch ($request['type']) {
 			// Start new game
-			case 'new_game':
-				$this->_newGame($request['data']);
+			case 'invite':
+			    $this->_invite($request['data']);
 				break;
 			// Request shoot
 			case 'shoot':
 			    $this->_shoot($request['data']);
 			    break;
 			// Response shoot
-			case 'shoot_at':
-			    $this->_shootAt($request['data']);
+			case 'notify':
+			    $this->_notify($request['data']);
 			    break;
             // Check available
-			case 'check_avail':
-			    $this->_checkAvail($request['data']);
+			case 'game-over':
+			    $this->_gameOver($request['data']);
 			    break;
 		}
 		//
@@ -144,7 +170,7 @@ class Battleship {
         // Format data
         $data = (array)(is_null($data) ? $this->_data : $data);
         // Save (replace) data
-        $saveGameID = static::getGameSessionID();
+        $saveGameID = $this->_X_SESSION_ID;
         $filename = "{$this->_data_dir}{$saveGameID}.json";
         file_put_contents($filename, json_encode($data, JSON_PRETTY_PRINT));
         return $this;
@@ -155,7 +181,7 @@ class Battleship {
      * @return array
      */
     protected function _loadGameData() {
-        $saveGameID = static::getGameSessionID();
+        $saveGameID = $this->_X_SESSION_ID;
         $filename = "{$this->_data_dir}{$saveGameID}.json";
         $json = trim(@file_get_contents($filename));
         return $this->_data = (array)(@json_decode($json, true));
@@ -165,18 +191,17 @@ class Battleship {
      * @param array $data Request data
      * @return string (JSON)
      */
-	protected function _newGame($data) {
+    protected function _invite($data) {
 		// Reset game data
-	    //
-	    $dboard = $this->_data['board'];
+        $this->_board = new Board(array());
+        $this->_board->invite($data);
+        $dboard = $this->_board->toArr();
+	    /* $dboard = $this->_data['board'];
 	    if (is_null($dboard)) {
 	        $dboard = $this->_data['board'] = $this->_board->toArr();
-	    }
-	    // @TODO:
-	    // $this->_saveGameData();
+	    } */
 	    //
 	    $shoots = $dboard['shoots'];
-	    unset($shoots['_']);
 	    $resData = array(
 	        'ships' => $dboard['ships'],
 	        'shoots' => $shoots
@@ -198,9 +223,9 @@ class Battleship {
 	/**
 	 *
 	 */
-	protected function _shootAt($data) {
+	protected function _notify($data) {
 	    // Request fire
-	    $resData = $this->_board->shootAt($data);
+	    $resData = $this->_board->notify($data);
 	    //
 	    return $this->response($resData);
 	}
@@ -208,9 +233,9 @@ class Battleship {
 	/**
 	 *
 	 */
-	protected function _checkAvail($data) {
+	protected function _gameOver($data) {
 	    // Request fire
-	    $resData = $this->_board->checkAvail($data);
+	    $resData = $this->_board->gameOver($data);
 	    //
 	    return $this->response($resData);
 	}
