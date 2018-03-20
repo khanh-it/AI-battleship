@@ -209,6 +209,7 @@ class Ship {
 	public function toArr() {
 		return array(
 			'type' => $this->_type,
+		    'coordinates' => array($this->_x, $this->_y),
 			'matrix' => $this->_matrix,
 			'x' => $this->_x,
             'y' => $this->_y,
