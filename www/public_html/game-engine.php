@@ -18,6 +18,7 @@ require_once '../lib/battleship/board.php';
     <link href="css/lib/bootstrap-3.3.7/css/bootstrap-theme.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
     <script type="text/javascript" src="js/lib/jquery-1.12.4.min.js"></script>
+    <script type="text/javascript" src="js/lib/jquery.rest-1.0.2.min.js"></script>
     <script type="text/javascript" src="css/lib/bootstrap-3.3.7/js/bootstrap.min.js"></script>
 </head>
 <body>

@@ -8,31 +8,31 @@ class Ship {
      * Carrier
      * @var string
      */
-    const TYPE_CARRIER = 'Carrier';
+    const TYPE_CARRIER = 'CV';
     
     /**
      * Battleship
      * @var string
      */
-    const TYPE_BATTLESHIP = 'Battleship';
+    const TYPE_BATTLESHIP = 'BB';
     
     /**
      * OilRig
      * @var string
      */
-    const TYPE_OILRIG = 'OilRig';
+    const TYPE_OILRIG = 'OR';
     
     /**
      * Cruiser
      * @var string
      */
-    const TYPE_CRUISER = 'Cruiser';
+    const TYPE_CRUISER = 'CA';
     
     /**
      * Destroyer
      * @var string
      */
-    const TYPE_DESROYER = 'Destroyer';
+    const TYPE_DESROYER = 'DD';
     
     /**
      * Direction: 0 (horizontal)

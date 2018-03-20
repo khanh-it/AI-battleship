@@ -19,7 +19,7 @@ set_include_path(implode(PATH_SEPARATOR, array(
 //
 require_once('battleship/battleship.php');
 
-//
+// Init bot...
 $battleship = new Battleship(array(
     'data_dir' => DATA_DIR, //
 ));
