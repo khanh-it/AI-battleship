@@ -213,7 +213,7 @@ class Battleship {
         $dboard = $this->_board->toArr();
         $resData = array(
             'ships' => $dboard['ships'],
-            'shoots' => $dboard['shoots']
+            // 'shoots' => $dboard['shoots']
         );
         //
         return $this->response($resData);
@@ -224,9 +224,16 @@ class Battleship {
 	 */
 	protected function _shoot($data) {
 	    // Request fire
-	    $resData = $this->_board->shoot($data);
+	    $coordinates = array();
+	    $shoots = (array)$this->_board->shoot($data);
+	    if (!is_null($shoots['x']) || !is_null($shoots['y'])) {
+	        $shoots = array($shoots);
+	    }
+	    foreach ($shoots as $shoot) {
+	        $coordinates[] = array($shoot['x'], $shoot['y']);
+	    }
 	    //
-	    return $this->response($resData);
+	    return $this->response($coordinates);
 	}
 	
 	/**
@@ -234,6 +241,13 @@ class Battleship {
 	 */
 	protected function _notify($data) {
 	    // Request fire
+	    foreach ((array)$data['shots'] as $shot) {
+	        $_data = array(
+	            'playerId' => $_data['playerId'],
+	            'is_hit' => 'HIT' === strtoupper($shot['status']),
+	            
+	        );
+	    }
 	    $resData = $this->_board->notify($data);
 	    //
 	    return $this->response($resData);

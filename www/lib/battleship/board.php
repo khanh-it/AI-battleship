@@ -179,10 +179,11 @@ class Board {
             $block = $this->_calWillShootBlock();
             if (!empty($block)) {
                 list($blockRow, $blockCol) = $block;
-                $rowMin = ($blockRow * 4) - 3;
-                $colMin = ($blockCol * 4) - 3;
+                $rowMin = ($blockRow * 4);
+                $colMin = ($blockCol * 4);
                 $rowMax = $rowMin + 3;
                 $colMax = $colMin + 3;
+                // echo '<pre>'; var_dump($block, $rowMin, $colMin, $rowMax, $colMax); echo '</pre>';die();
             }
             $this->_mapCell(function($row, $col, $key) use (&$cells, &$oeCells) {
                 if (is_null($this->_shoots[$key])) {
@@ -379,12 +380,12 @@ class Board {
     /**
      * 
      */
-    protected function _buildData() {        
+    protected function _buildData() {
         $blockCellCnt = 4;
         for ($col = 0; $col < static::$cols; $col++) {
             for ($row = 0; $row < static::$rows; $row++) {
-                $blockCol = ceil($col / $blockCellCnt); 
-                $blockRow = ceil($row / $blockCellCnt);
+                $blockCol = $col % $blockCellCnt;
+                $blockRow = $row % $blockCellCnt;
                 //
                 $cell = (object)array(
                     'x' => $col,
@@ -393,7 +394,7 @@ class Board {
                     'sum' => $col + $row
                 );
                 //
-                $this->_blocks[$blockRow][$blockCol][] = $cell; 
+                $this->_blocks[$blockRow][$blockCol] = null;// [] = $cell; 
             }
         }
     }
@@ -455,7 +456,7 @@ class Board {
                 // Blocks from centers
                 if ($lessShootPerBlock) {
                     // Blocks from centers
-                    if ($bC >= 2 && $bC <= 4) {
+                    if ($bC >= 1 && $bC <= 3) {
                         $shootBlocksCenter[] = array($bR, $bC);
                     // Blocks from edge
                     } else {

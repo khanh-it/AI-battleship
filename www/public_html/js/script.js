@@ -42,7 +42,7 @@
 		/**
 		 | 
 		 */
-		_shootCnt: 0,
+		shootCnt: 0,
 		/**
 		 | Init board (render board with cols and rows)
 		 */
@@ -78,7 +78,7 @@
 					for (var col = 0; col < vector.length; col++) {
 						num = vector[col];
 						if (!num) { continue; }
-						var slt = 'tr.row' + (ship.y + row) + ' > td.col' + (ship.x + col);
+						var slt = 'tr.row' + (ship.coordinates[1] + row) + ' > td.col' + (ship.coordinates[0] + col);
 						var $td = this._$board.find(slt);
 						if (!$td.length) {
 							alert('Critial error: ship is out of border. Slt: ' + slt + '.');
@@ -117,13 +117,26 @@
 		/**
 		 | 
 		 */
-		notify: function notify(data) {
-			var isHit = 0;
-			var $td = this._styleTdShoot(data.x, data.y);
-			if ($td && $td.length) {
+		notify: function notify(dataArr) {
+			var notifyData = {
+				playerId: player1,
+				shots: [],
+				sunkShips: []
+			};
+			for (var data of dataArr) {
+				var shot = {
+					coordinate: dataArr,
+					status: 'MISS'
+				};
+				var sunkShip = null;
+				var $td = this._styleTdShoot(data[0], data[1]);
+				if (!($td && $td.length)) {
+					alert('Shoot failed: ' + JSON.stringify(data));
+					return;
+				}
 				var ship = $.trim($td.attr('data-ship'));
-				if (ship) { // Ship was destroy?
-					isHit = 1;
+				if (ship) { // Hit yes
+					shot['status'] = 'HIT';
 					var sltShip = 'td[data-ship="' + ship + '"]';
 					var sltShoot = 'td[data-shoot]';
 					var $tdShips = this._$board.find(sltShip);
@@ -131,20 +144,22 @@
 					// console.log(sltShip, sltShoot, $tdShips, $tdShoots);
 					// Case: ship down! 
 					if ($tdShips.length == $tdShoots.length) {
-						var position = [];
+						var coordinates = [];
 						$tdShips.each(function(){
 							var $this = $(this), $tr = $this.parent();
 							var col = (1 * ($this.attr('class').match(/col(\d+)/) || [])[1] || '0');
 							var row = (1 * ($tr.attr('class').match(/row(\d+)/) || [])[1] || '0')
-							position.push({ x: col, y: row });
+							coordinates.push({ x: col, y: row });
 						});
-						isHit = {
+						notifyData.sunkShips.push({
 							'type': ship.slice(0, -2),
-							'position': position
-						};
+							'coordinates': coordinates
+						});
 					}
 					
 				}
+				//
+				notifyData.shots.push(shot);
 				// Game end?
 				$tdShips = this._$board.find('td[data-ship]');
 				$tdShoots = $tdShips.filter('td[data-shoot]');
@@ -152,10 +167,9 @@
 					this._$board.attr('data-game_end', 1);
 					setTimeout(function(){ alert('Game end!!!'); }, 256);
 				}
+				console.log('shoot#' + Battleship.shootCnt + ' data: ', (data[1] + ':' + data[0]), ' - notifyData: ', notifyData);
 			}
-			this._shootCnt += 1;
-			console.log('shoot#' + this._shootCnt + ' data: ', (data.y + ':' + data.x), ' - isHit: ', isHit);
-			return isHit;
+			return notifyData;
 		},
 		/**
 		 | 
@@ -164,8 +178,8 @@
 			var slt = 'tr.row' + y + ' > td.col' + x;
 			var $td = this._$board.find(slt);
 			if ($td && $td.length) {
-				var shootCnt = (1 * ($td.attr('data-shoot') || 0)) + 1;
-				$td.attr('data-shoot', shootCnt);
+				var dataShoot = (1 * ($td.attr('data-shoot') || 0)) + 1;
+				$td.attr('data-shoot', dataShoot);
 			}
 			// console.log('_styleTdShoot # slt: ', slt, ' - $td: ',  $td.get(0));
 			return $td;
@@ -214,21 +228,19 @@
 		 | invite
 		 */
 		invite: function invite(data, cb) {
-			data = typeof data == 'object' ? data : {};
-			this.call('invite', data, cb);
+			this.call('invite', $.extend(data, {}), cb);
 		},
 		/**
 		 | place ships
 		 */
 		placeShips: function placeShips(data, cb) {
-			data = typeof data == 'object' ? data : {};
-			this.call('place-ships', data, cb);
+			this.call('place-ships', $.extend(data, {}), cb);
 		},
 		/**
 		 | 
 		 */
-		shoot: function shoot(cb) {
-			this.call('shoot', data, cb);
+		shoot: function shoot(data, cb) {
+			this.call('shoot', $.extend(data, {}), cb);
 		}, 
 		/**
 		 | 
@@ -241,7 +253,7 @@
 		 | 
 		 */
 		gameOver: function gameOver(data) {
-			this.call('game-over', data);
+			this.call('game-over', $.extend(data, {}), cb);
 		}
 	};
 
@@ -261,11 +273,9 @@
 		_bot: null,
 		
 		/**
-		 | @var Bot
+		 | @var number Number of shoots
 		 */
-		requestShoot: function requestShoot() {
-			this._bot.shoot();
-		},
+		shootCnt: 0,
 		
 		/**
 		 | 
@@ -318,14 +328,17 @@
 			// Format cb
 			cb = cb || $.noop;
 			var self = this;
-			this._bot.shoot(function(err, data){
+			this._bot.shoot({
+				turn: ++this.shootCnt,
+				maxShots: 1
+			}, 
+			function(err, data){
 				if (err) {
 					return alert(err);
 				}
 				//
-				var isHit = Battleship._board.notify(data);
-				//
-				self._bot.notify(data, isHit);
+				var notifyData = self._board.notify(data);
+				self._bot.notify(notifyData);
 				// Fire callback
 				cb();
 			});
