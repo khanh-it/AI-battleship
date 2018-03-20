@@ -240,15 +240,17 @@ class Battleship {
 	 *
 	 */
 	protected function _notify($data) {
-	    // Request fire
+	    $resData = array();
 	    foreach ((array)$data['shots'] as $shot) {
 	        $_data = array(
-	            'playerId' => $_data['playerId'],
-	            'is_hit' => 'HIT' === strtoupper($shot['status']),
-	            
-	        );
+	            'playerId' => $data['playerId'],
+	            'x' => $shot['coordinate'][0],
+	            'y' => $shot['coordinate'][1],
+	            'isHit' => ('HIT' === strtoupper($shot['status'])),
+	            'sunkShips' => $data['sunkShips'],
+	        );echo '<pre>'; var_dump($_data, $shot); echo '</pre>';die();
+	        $notify = $this->_board->notify($_data);
 	    }
-	    $resData = $this->_board->notify($data);
 	    //
 	    return $this->response($resData);
 	}

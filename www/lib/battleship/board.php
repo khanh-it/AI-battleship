@@ -250,7 +250,7 @@ class Board {
     public function notify($data) {
         //
         $key = static::key($data['y'], $data['x']);
-        $isHit = $data['is_hit'];
+        $isHit = $data['isHit'];
         // Opponent's ship sunk?
         $oShipSunk = null;
         // Case: normal hit

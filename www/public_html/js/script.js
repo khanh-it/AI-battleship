@@ -125,7 +125,7 @@
 			};
 			for (var data of dataArr) {
 				var shot = {
-					coordinate: dataArr,
+					coordinate: data,
 					status: 'MISS'
 				};
 				var sunkShip = null;
