@@ -14,6 +14,14 @@
 	 | @var string
 	 */
 	var SESSID = (new Date()).toISOString().substring(0, 10);// + Date.now();
+	/**
+	 | @var string
+	 */
+	var player1 = 'player1_' + Date.now();
+	/**
+	 | @var string
+	 */
+	var player2 = 'player2_' + Date.now();
 
 	/**
 	 |
@@ -185,14 +193,14 @@
 		 */
 		call: function call(type, data, cb) {
 			cb = cb || $.noop;
-			data = $.extend({ sessionid: SESSID }, data);
+			// data = $.extend({ sessionid: SESSID }, data);
 			// @param RestClient
 			var request = new $.RestClient('/', {
 				// http://api.jquery.com/jQuery.ajax/
 				ajax: {
 					headers: {'X-SESSION-ID': SESSID, 'X-TOKEN': Date.now()}
 				} 
-			}).add(type).read();
+			}).add(type).create(data);
 			request.done(function(result/* , textStatus, xhrObject */){
 				// Case: error
 				if (result && result.error) {
@@ -207,20 +215,20 @@
 		 */
 		invite: function invite(data, cb) {
 			data = typeof data == 'object' ? data : {};
-			this.call('invite', {}, cb);
+			this.call('invite', data, cb);
 		},
 		/**
 		 | place ships
 		 */
 		placeShips: function placeShips(data, cb) {
 			data = typeof data == 'object' ? data : {};
-			this.call('place-ships', {}, cb);
+			this.call('place-ships', data, cb);
 		},
 		/**
 		 | 
 		 */
 		shoot: function shoot(cb) {
-			this.call('shoot', {}, cb);
+			this.call('shoot', data, cb);
 		}, 
 		/**
 		 | 
@@ -272,27 +280,34 @@
 
 			var bot = this._bot = new Bot();
 			var ships = [];
-			for (var i = 0; i < getRandomInt(6, 10); i++) {
-				ships.push({
-					
-				});
+			var types = ['CV', 'BB', 'OR', 'CA', 'DD'];
+			for (var type of types) {
+				ships.push({ type: type, quantity: getRandomInt(1, 3) });
 			}
 			//
 			bot.invite({
 				boardWidth: 20,
 				boardHeight: 8,
-				
-
+				ships: ships
 			}, function(err, data){
-				console.log('bot init done: ', err, data);
+				console.log('bot invite done: ', err, data);
 				// OK?
 				if (!err) {
-					// Render board data!
-					board.renderShips(data.ships);
-					board.renderShoots(data.shoots);
+					// Place ships
+					return bot.placeShips({
+						player1: player1,
+						player2: player2
+					}, function(err, data){
+						if (!err && data) {
+							board.renderShips(data.ships);
+							board.renderShoots(data.shoots);	
+						}
+						// Fire callback?
+						cb(err, data);
+					});
 				}
-				// Fire callback
-				cb();
+				// Fire callback?
+				cb(err, data);
 			});
 		},
 		

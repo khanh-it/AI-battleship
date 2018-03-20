@@ -79,7 +79,7 @@ class Battleship {
 	/**
 	 *
 	 */
-	public function response($data, $error = null) {
+	public function response($data = null, $error = null) {
 	    // Headers
 	    header('X-SESSION-ID: ' . $this->_X_SESSION_ID);
 	    header('X-TOKEN: ' . $this->_X_TOKEN);
@@ -87,7 +87,7 @@ class Battleship {
 	    if ($error) {
 	        $this->_response['error'] = $error;
 	    } else {
-	        $this->_response = (array)$data;
+	        $this->_response = $data;
 	    }
 	    //
 	    return static::resJSON($this->_response);
@@ -141,10 +141,14 @@ class Battleship {
 		);
 		//
 		switch ($request['type']) {
-			// Start new game
+			// Invite (start new game)
 			case 'invite':
 			    $this->_invite($request['data']);
-				break;
+			    break;
+			// Place ships
+			case 'place-ships':
+			    $this->_placeShips($request['data']);
+			    break;
 			// Request shoot
 			case 'shoot':
 			    $this->_shoot($request['data']);
@@ -172,7 +176,7 @@ class Battleship {
         // Save (replace) data
         $saveGameID = $this->_X_SESSION_ID;
         $filename = "{$this->_data_dir}{$saveGameID}.json";
-        file_put_contents($filename, json_encode($data, JSON_PRETTY_PRINT));
+        file_put_contents($filename, json_encode($data, JSON_PRETTY_PRINT, 10));
         return $this;
     }
     
@@ -195,20 +199,25 @@ class Battleship {
 		// Reset game data
         $this->_board = new Board(array());
         $this->_board->invite($data);
-        $dboard = $this->_board->toArr();
-	    /* $dboard = $this->_data['board'];
-	    if (is_null($dboard)) {
-	        $dboard = $this->_data['board'] = $this->_board->toArr();
-	    } */
-	    //
-	    $shoots = $dboard['shoots'];
-	    $resData = array(
-	        'ships' => $dboard['ships'],
-	        'shoots' => $shoots
-	    );
         //		
-	    return $this->response($resData);
-	}
+	    return $this->response();
+    }
+    
+    /**
+     * @param array $data Request data
+     * @return string (JSON)
+     */
+    protected function _placeShips($data) {
+        // Reset game data
+        $this->_board->placeShips($data);
+        $dboard = $this->_board->toArr();
+        $resData = array(
+            'ships' => $dboard['ships'],
+            'shoots' => $dboard['shoots']
+        );
+        //
+        return $this->response($resData);
+    }
 	
 	/**
 	 *

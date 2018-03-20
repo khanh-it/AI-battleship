@@ -1,12 +1,17 @@
 <?php
 //
-require_once('ship.php');
-
+require_once  __DIR__ . '/ship.php';
+require_once __DIR__ . '/generalship.php';
 /**
  * 
  * @author KhanhDTP
  */
 class Board {
+    /**
+     * @var array of Game Engine data
+     */
+    protected $_gameEngineData = array();
+
     /**
      * @var array of Ship
      */
@@ -90,22 +95,28 @@ class Board {
      */
     public function invite($data = null) {
         // init ships
-        echo '<pre>invite '; var_dump($data); echo '</pre>';die();
-        if (is_null($this->_ships)) {
-            require_once __DIR__ . '/generalship.php';
-            $generateConfigs = [
-                ['type' => Ship::TYPE_CARRIER, 'number' => rand(1, 3)],
-                ['type' => Ship::TYPE_BATTLESHIP, 'number' => rand(1, 3)],
-                ['type' => Ship::TYPE_CRUISER, 'number' => rand(1, 3)],
-                ['type' => Ship::TYPE_DESROYER, 'number' => rand(1, 3)],
-                ['type' => Ship::TYPE_OILRIG, 'number' => rand(1, 3)]
-            ];
-            $shipPresets = new Generalship($generateConfigs);
-            $shipPreset = $shipPresets->initMatchTest(); // Pick random
-            // $shipPreset = $shipPresets[4]; // debug
-            foreach ($shipPreset as $shipP) {
-                $this->_ships[] = (new Ship($shipP['type'], $shipP))->toArr();
-            }
+        // echo '<pre>invite '; var_dump($data); echo '</pre>';die();
+        $this->_gameEngineData['invite'] = $data;
+        //
+        return $this;
+    }
+    
+    /**
+     * Place ships
+     * @param array $data Request data
+     * @return Battleship
+     */
+    public function placeShips($data = null) {
+        // echo '<pre>invite '; var_dump($data); echo '</pre>';die();
+        $this->_gameEngineData['place_ships'] = $data;
+        //
+        $shipPresets = new Generalship(
+            $generateConfigs = (array)$this->_gameEngineData['invite']['ships']
+        );
+        $shipPreset = $shipPresets->initMatchTest(); // Pick random
+        // $shipPreset = $shipPresets[4]; // debug
+        foreach ($shipPreset as $shipP) {
+            $this->_ships[] = (new Ship($shipP['type'], $shipP))->toArr();
         }
         //
         return $this;
@@ -340,6 +351,9 @@ class Board {
         // Format data
         $data = is_array($data) ? $data: array();
         //
+        if (is_array($data['game_engine_data'])) {
+            $this->_gameEngineData = $data['game_engine_data'];
+        }
         if (is_array($data['ships'])) {
             $this->_ships = $data['ships'];
         }
@@ -652,6 +666,7 @@ class Board {
             'shoot_blocks' => $this->_shootBlocks,
             'ships' => $this->_ships,
             'opponents_shoots' => $this->_opponentsShoots,
+            'game_engine_data' => $this->_gameEngineData
         );
         return $return;
     }

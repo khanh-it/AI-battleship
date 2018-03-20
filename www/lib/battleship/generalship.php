@@ -41,7 +41,7 @@ class Generalship
     {
         if (empty($this->_data)) {
             foreach ($this->_config as $shipData) {
-                for ($count = 0; $count < $shipData['number']; $count++) {
+                for ($count = 0; $count < $shipData['quantity']; $count++) {
                     $ship = $this->randomShip($shipData['type']);
                     $this->_data[] = $ship;
                     $this->drawShip($this->_ships[$ship['x'] . '_' . $ship['y']]);
