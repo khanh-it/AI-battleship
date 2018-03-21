@@ -234,7 +234,7 @@ class Board {
             foreach (Ship::returnDirecArr() as $direc) {
                 $shipStats = $this->_getShipStats($ship['type'], $direc, $row, $col);
                 $containCnt = 0;
-                if (!$shipStats['total_missed']) {
+                if (!$shipStats['total_missed'] || (true === $options['skip_total_missed'])) {
                     foreach ($cells as $key) {
                         $key = is_string($key) ? $key : static::key($key);
                         if ($shipStats['cells'][$key]) {
@@ -331,7 +331,11 @@ class Board {
         // +++ Store shoots by key
         $this->_shoots[$key] += $isHit;
         
-        // @TODO: Remove unnecessary hit shoots
+        // Reorder priority of hit shoots
+        $this->_reorderPriorityHitShoots();
+        // #end
+        
+        // Remove unnecessary hit shoots
         $this->_removeUnnecessaryHitShoots();
         // #end
         
@@ -518,6 +522,47 @@ class Board {
         }
         // Return
         return $block;
+    }
+    
+    /**
+     * Sau khi ban trung 1 diem (hit shoot), ta se chuyen sang [target mode].
+     * Tim nhung o (cells) lien quan cua o (cell) da ban trung de ban tiep tuc.
+     * De toi uu viec lua chon shoot tiep theo la gi, ta se lan luot dat tung tau (ships)
+     * vao vi tri do, roi kiem tra xem cell(s) nao co uu tien cao hon thi sap xep lai.
+     */
+    protected function _reorderPriorityHitShoots() {
+        $hitShoots = $this->_hitShoots;
+        $reorderHitShoots = array();
+        foreach ($hitShoots as $_k => $hitShoot) {
+            if (!is_null($hitShoot)) {
+                continue;
+            }
+            unset($hitShoots[$_k]);
+            $containCells = array($_k);
+            foreach ($this->_ships as $ship) {
+                if ($ship['osunk']) {
+                    continue;
+                }
+                $options = array(
+                    // 'merge_cells' => true,
+                    'skip_total_missed' => true
+                );
+                $shipStatsArr = (array)$this->_shipContainCells($containCells, $ship, $options);
+                $reorderHitShoots[$_k] += (count($shipStatsArr) + 0 /* rand(1, 10) */);
+            }
+        }
+        uasort($reorderHitShoots, function($a, $b){ return $a < $b; });
+        foreach ($reorderHitShoots as $_k => $cnt) {
+            $hitShoots[$_k] = null;
+        }
+        $this->_hitShoots = $hitShoots;
+        /* $strBf = implode('|', array_keys($this->_hitShoots));
+        $strAf = implode('|', array_keys($hitShoots));
+        if ($strBf != $strAf) {
+            echo '<pre>_reorderPriorityHitShoots: '; var_dump($strBf . ' # ' . $strAf); echo '</pre>';die();
+        } */
+        //
+        return $this;
     }
     
     /**

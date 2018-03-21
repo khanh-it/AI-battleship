@@ -60,6 +60,7 @@ class Ship {
         $dH = static::DIREC_H;
         $dV = static::DIREC_V;
         $direction = ($dV == $direction) ? $dV : $dH;
+        $direction = static::DIREC_V;
         
         $matrix = array(
             static::TYPE_CARRIER => array(
@@ -206,10 +207,16 @@ class Ship {
 		);
 	}
 	
+	public function getCoordinates() {
+	    return array(
+	        $this->_x, $this->_y
+	    );
+	}
+	
 	public function toArr() {
 		return array(
 			'type' => $this->_type,
-		    'coordinates' => array($this->_x, $this->_y),
+		    'coordinates' => $this->getCoordinates(),
 			'matrix' => $this->_matrix,
 			'x' => $this->_x,
             'y' => $this->_y,
