@@ -149,7 +149,7 @@
 							var $this = $(this), $tr = $this.parent();
 							var col = (1 * ($this.attr('class').match(/col(\d+)/) || [])[1] || '0');
 							var row = (1 * ($tr.attr('class').match(/row(\d+)/) || [])[1] || '0')
-							coordinates.push({ x: col, y: row });
+							coordinates.push([col, row]);
 						});
 						notifyData.sunkShips.push({
 							'type': ship.slice(0, -2),
@@ -290,9 +290,9 @@
 
 			var bot = this._bot = new Bot();
 			var ships = [];
-			var types = ['CV', 'BB', 'OR', 'CA', 'DD'];
+			var types = ['CV', 'BB', 'OR'/*, 'CA', 'DD'*/];
 			for (var type of types) {
-				ships.push({ type: type, quantity: getRandomInt(1, 3) });
+				ships.push({ type: type, quantity: getRandomInt(1, 1) });
 			}
 			//
 			bot.invite({

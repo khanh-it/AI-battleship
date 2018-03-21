@@ -271,6 +271,74 @@ class Board {
         $this->_opponentsShoots[$key] += $data['isHit'];
         return $this;
     }
+
+    protected function _notifyAddRelHitCells($data) {
+        $cells = $this->getRelativeCells($data['y'], $data['x'], array('include_current' => true));
+        // Cal relative cells
+        foreach ($cells as $cell) {
+            list($row, $col) = $cell;
+            $_k = static::key($row, $col);
+            if (($row < 0 || $row >= static::$rows)
+                || ($col < 0 || $col >= static::$cols)
+                || (!is_null($this->_shoots[$_k]) && $_k != $key)
+            ) {
+                continue;
+            }
+            if (!array_key_exists($_k, (array)$this->_hitShoots)) {
+                $this->_hitShoots[$_k] = null;
+            }
+        }
+    }
+
+    protected function _notifySunkShips($data) {
+        $sunkShips = $data['sunkShips'];
+        // Mark opponent ship as sunk!
+        $oSunk = 0;
+        foreach ((array)$sunkShips as $sunkShip) {
+
+            foreach ($this->_ships as &$ship) {
+                if (strtolower($ship['type']) == strtolower($sunkShip['type'])) {
+                    $ship['osunk'] = $oSunk = 1;
+                    break;
+                }
+            }
+            if ($oSunk) { break; }
+        }
+        unset($ship, $sunkShip, $oSunk);
+
+        // @TODO
+        // Kiem tra lai lich su ban tau so voi vi tri tau (game engine gui len).
+        // Neu, van con hit cell nam ngoai vi tri tau --> chac 100% la van con tau gan ben.
+        // ...
+        
+        // 
+        foreach ((array)$sunkShips as $sunkShip) {
+            $nullHitShootCells = array();
+            foreach ((array)$sunkShip['coordinates'] as $pos) {
+                list($_c, $_r) = $pos;
+                $_k = static::key($_r, $_c);
+                // Chuyen tat ca o (cells) cua tau ve (false)
+                $this->_hitShoots[$_k] = false; // , --> ho tro _removeUnnecessaryHitShoots
+                $this->_shoots[$_k] = false; // , --> ho tro checkAvail!
+                //
+                $relCells = $this->getRelativeCells($_r, $_c);
+                foreach ($relCells as $__k => $relCell) {
+                    if (array_key_exists($__k, $this->_hitShoots) && is_null($this->_hitShoots[$__k])) {
+                        $nullHitShootCells[] = $__k;
+                    }
+                }
+            }
+            $leepCnt = count($nullHitShootCells) - 4 /* max null hit shoot count */;
+            if ($leepCnt > 0) {
+                for ($i = 0; $i < $leepCnt; $i++) {
+                    $__k = $nullHitShootCells[rand(0, count($nullHitShootCells) - 1)];
+                    // @TODO: use this feature???? 
+                    // $this->_hitShoots[$__k] = 0;
+                }
+                var_dump("\$nullHitShootCells of `{$sunkShip['type']}`: " . implode(' | ', $nullHitShootCells));
+            }
+        }
+    }
     
     /**
      * Notify shoots
@@ -282,96 +350,35 @@ class Board {
         if ($notifyOp) {
             return $this->_notifyOp($data);
         }
-        
+        // Get, format data
         $key = static::key($data['y'], $data['x']);
         $isHit = $data['isHit'];
         // Opponent's ship sunk?
         $sunkShips = $data['sunkShips'];
-        // Case: ship(s) sunk
-        if ($sunkShips) {
-            // Mark opponent ship as sunk!
-            $oSunk = 0;
-            foreach ((array)$sunkShips as $sunkShip) {
-                foreach ($this->_ships as &$ship) {
-                    if (strtolower($ship['type']) == strtolower($sunkShip['type'])) {
-                        $ship['osunk'] = $oSunk = 1;
-                        break;
-                    }
-                }
-                if ($oSunk) { break; }
-            }
-            unset($ship, $sunkShip, $oSunk);
-        }
 
         // Case: hit. Add relative cells to list.
         if ($isHit) {
-            $cells = $this->getRelativeCells($data['y'], $data['x'], array('include_current' => true));
-            // Cal relative cells
-            foreach ($cells as $cell) {
-                list($row, $col) = $cell;
-                $_k = static::key($row, $col);
-                if (($row < 0 || $row >= static::$rows)
-                    || ($col < 0 || $col >= static::$cols)
-                    || (!is_null($this->_shoots[$_k]) && $_k != $key)
-                ) {
-                    continue;
-                }
-                if (!array_key_exists($_k, (array)$this->_hitShoots)) {
-                    $this->_hitShoots[$_k] = null;
-                }
-            }
-            unset($_k);
+            $this->_notifyAddRelHitCells($data);
         }
 
-        // Our shoots result?
-        //
+        // Record shoots result?
+        // +++ hit shoots
         if (array_key_exists($key, $this->_hitShoots)) {
             $this->_hitShoots[$key] += $isHit;
         }
-        // +++ Store shoots by key
+        // +++ shoots
         $this->_shoots[$key] += $isHit;
+
+        // Case: ship(s) sunk
+        if ($sunkShips) {
+            $this->_notifySunkShips($data);
+        }
         
         // Reorder priority of hit shoots
         $this->_reorderPriorityHitShoots();
-        // #end
         
         // Remove unnecessary hit shoots
         $this->_removeUnnecessaryHitShoots();
-        // #end
-        
-        // @TODO:
-        // Trace hit shoots?
-        if ($sunkShips) {
-            // Kiem tra lai lich su ban tau so voi vi tri tau (game engine gui len).
-            // Neu, van con hit cell nam ngoai vi tri tau --> chac 100% la van con tau gan ben.
-            // ...
-            
-            // Sau khi ban chim tau. Trong ds cells chua ban cua tau thi co 50/50% kha nang
-            // La co tau ke ben tau chim. Can can doi giua viec tiep tuc ban het tat ca o (cells)
-            // trong ds nay, hoac la di chuyen tiep vi tri khac?! 
-            // Lay ds tat ca cells chua ban cua ship
-            $nullHitShootCells = array();
-            foreach ((array)$sunkShips['coordinates'] as $pos) {
-                $relCells = $this->getRelativeCells($_r = $pos[1], $_c = $pos[0]);
-                foreach ($relCells as $_k => $relCell) {
-                    if (array_key_exists($_k, $this->_hitShoots) && is_null($this->_hitShoots[$_k])) {
-                        $nullHitShootCells[] = $_k;
-                    }
-                }
-                // Chuyen tat ca o (cells) cua tau ve (false), --> ho tro checkAvail!
-                $this->_shoots[static::key($_r, $_c)] = false;
-            }
-            $leepCnt = count($nullHitShootCells) - 4 /* max null hit shoot count */;
-            if ($leepCnt > 0) {
-                for ($i = 0; $i < $leepCnt; $i++) {
-                    $_k = $nullHitShootCells[rand(0, count($nullHitShootCells) - 1)];
-                    // @TODO: use this feature? 
-                    // $this->_hitShoots[$_k] = 0;
-                }
-                var_dump('$nullHitShootCells: ' . implode(' | ', $nullHitShootCells));
-            }
-        }
-        // #end
 
         // Kiem tra tinh du thua cua cac o (cells) --> loai bo.
         // $this->checkAvail();
@@ -555,12 +562,14 @@ class Board {
         foreach ($reorderHitShoots as $_k => $cnt) {
             $hitShoots[$_k] = null;
         }
+        if (DEBUG) {
+            $strBf = implode('|', array_keys($this->_hitShoots));
+            $strAf = implode('|', array_keys($hitShoots));
+            if ($strBf != $strAf) {
+                echo("_reorderPriorityHitShoots: \r\nBf: " . $strBf . "\r\nAf: " . $strAf . "\r\n");
+            }
+        }
         $this->_hitShoots = $hitShoots;
-        /* $strBf = implode('|', array_keys($this->_hitShoots));
-        $strAf = implode('|', array_keys($hitShoots));
-        if ($strBf != $strAf) {
-            echo '<pre>_reorderPriorityHitShoots: '; var_dump($strBf . ' # ' . $strAf); echo '</pre>';die();
-        } */
         //
         return $this;
     }
@@ -600,14 +609,12 @@ class Board {
             foreach ($this->_hitShoots as $_k => $hitShoot) {
                 if (is_null($hitShoot) && !$availCells[$_k]) {
                     $this->_hitShoots[$_k] = false;
-                    // @TODO
-                    // $this->_shoots[$_k] = false;
                     $removedHitShoots[] = $_k;
                 }
             }
         }
         if (!empty($removedHitShoots)) {
-            var_dump('$removedHitShoots: ' . implode(' | ', $removedHitShoots));
+            DEBUG && var_dump('$removedHitShoots: ' . implode(' | ', $removedHitShoots));
         }
     }
     

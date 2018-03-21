@@ -2,6 +2,9 @@
 //
 require_once('board.php');
 
+//
+define('DEBUG', true);
+
 /**
  * Class for working with game engine!
  * @author KhanhDTP
