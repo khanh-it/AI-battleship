@@ -17,7 +17,7 @@
 	/**
 	 | @var string
 	 */
-	var player1 = 'player1_' + Date.now();
+	var player1 = 'ea_team_no1';
 	/**
 	 | @var string
 	 */
@@ -125,7 +125,7 @@
 			};
 			for (var data of dataArr) {
 				var shot = {
-					coordinate: dataArr,
+					coordinate: data,
 					status: 'MISS'
 				};
 				var sunkShip = null;
