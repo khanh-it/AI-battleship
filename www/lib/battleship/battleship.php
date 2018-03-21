@@ -208,7 +208,6 @@ class Battleship {
      * @return string (JSON)
      */
     protected function _placeShips($data) {
-        // Reset game data
         $this->_board->placeShips($data);
         $dboard = $this->_board->toArr();
         $resData = array(
@@ -240,19 +239,17 @@ class Battleship {
 	 *
 	 */
 	protected function _notify($data) {
-	    $resData = array();
 	    foreach ((array)$data['shots'] as $shot) {
 	        $_data = array(
 	            'playerId' => $data['playerId'],
 	            'x' => $shot['coordinate'][0],
 	            'y' => $shot['coordinate'][1],
-	            'isHit' => ('HIT' === strtoupper($shot['status'])),
+	            'isHit' => intval('HIT' === strtoupper($shot['status'])),
 	            'sunkShips' => $data['sunkShips'],
-	        );echo '<pre>'; var_dump($_data, $shot); echo '</pre>';die();
-	        $notify = $this->_board->notify($_data);
+	        );
+	        $this->_board->notify($_data);
 	    }
-	    //
-	    return $this->response($resData);
+	    return $this->response();
 	}
 	
 	/**
