@@ -128,7 +128,7 @@ class Board {
         $shipPresets = new Generalship(
             $generateConfigs = (array)$this->_gameEngineData['invite']['ships']
         );
-        $shipPreset = $shipPresets->initMatchTest(); // Pick random
+        $shipPreset = $shipPresets->initMatchTest2(); // Pick random
         // $shipPreset = $shipPresets[4]; // debug
         foreach ($shipPreset as $shipP) {
             $this->_ships[] = (new Ship($shipP['type'], $shipP))->toArr();

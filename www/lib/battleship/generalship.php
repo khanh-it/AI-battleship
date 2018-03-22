@@ -13,6 +13,7 @@ class Generalship
     protected $_data = array();
     protected $_ships = array();
     private $_board = array();
+    private $_shipsType = array();
 
     public function __construct(array $config)
     {
@@ -51,11 +52,55 @@ class Generalship
         return $this->_data;
     }
 
-    private function randomShip($type)
+    public function initMatchTest2()
+    {
+        if (empty($this->_data)) {
+            foreach ($this->_config as $shipData) {
+                for ($count = 0; $count < $shipData['quantity']; $count++) {
+                    $this->_shipsType[] = $shipData['type'];
+                }
+            }
+            shuffle($this->_shipsType);
+
+            while($type = array_pop($this->_shipsType)){
+                $ship = $this->randomShip($type);
+                $this->_data[] = $ship;
+                $this->drawShip($this->_ships[$ship['x'] . '_' . $ship['y']]);
+
+                $type = array_pop($this->_shipsType);
+                if ($type) {
+                    $ship = $this->randomShip($type, $ship);
+                    $this->_data[] = $ship;
+                    $this->drawShip($this->_ships[$ship['x'] . '_' . $ship['y']]);
+                }
+            }
+        }
+        return $this->_data;
+    }
+
+    private function randomShip($type, $shipNext = null)
     {
         $direcArr = Ship::returnDirecArr();
         $x = rand(0, Board::$cols - 1);
         $y = rand(0, Board::$rows - 1);
+
+        // Get position for ship with next ship
+        if (!empty($shipNext)) {
+            $shipNextData = $this->_ships[$shipNext['x'] . '_' . $shipNext['y']];
+            $distanceX = count($shipNextData['matrix'][0]);
+            $distanceY = count($shipNextData['matrix']);
+            if (($distanceX + $shipNext['x']) > (Board::$cols - 1)) {
+                $x = rand($shipNext['x'] - $distanceX, $shipNext['x']);
+            } else {
+                $x = rand($shipNext['x'], $shipNext['x'] + $distanceX);
+            }
+            if (($distanceY + $shipNext['y']) > (Board::$rows - 1)) {
+                $y = rand($shipNext['y'] - $distanceY, $shipNext['y']);
+            } else {
+                $y = rand($shipNext['y'], $shipNext['y'] + $distanceY);
+            }
+        }
+
         $ship = array(
             'type' => $type,
             'x' => $x,
@@ -65,7 +110,7 @@ class Generalship
         $shipData = (new Ship($ship['type'], $ship))->toArr();
 
         if (!$this->checkAvailable($shipData)) {
-            return $this->randomShip($type);
+            return $this->randomShip($type, $shipNext);
         }
 
         $this->_ships[$x . '_' . $y] = $shipData;
