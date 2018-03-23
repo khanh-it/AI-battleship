@@ -2,6 +2,7 @@
 //
 require_once  __DIR__ . '/ship.php';
 require_once __DIR__ . '/generalship.php';
+
 /**
  * 
  * @author KhanhDTP
@@ -10,7 +11,7 @@ class Board {
     /**
      * @var string
      */
-    const PLAYER_ID = 'ea_team_no1';
+    const PLAYER_ID = PLAYER_ID;
     
     /**
      * @var string Opponent player ID
@@ -168,21 +169,21 @@ class Board {
      * Our shoot
      * @return array
      */
-    public function shoot() {
+    public function shoot($data) {
         //
+        $data = (array)$data;
         $return = array();
         // Target mode [trace hit shoots]?
-        $hitShoot = null;
+        $hitShootCnt = 0;
         foreach ($this->_hitShoots as $_k => $val) {
             if (is_null($val) && is_null($this->_shoots[$_k])) {
-                $hitShoot = $_k;
+                list($row, $col) = static::keyR($_k);
+                $return[] = array('x' => $col, 'y' => $row);
+                $hitShootCnt++;
+            }
+            if ($data['maxShots'] && ($hitShootCnt >= $data['maxShots'])) {
                 break;
             }
-            if ($hitShoot) break;
-        }
-        if ($hitShoot) {
-            list($row, $col) = static::keyR($hitShoot);
-            $return = array('x' => $col, 'y' => $row);
         }
         // #end
         //
@@ -213,8 +214,14 @@ class Board {
                 }
             }, $rowMin, $colMin, $rowMax, $colMax);
             $cells = empty($oeCells) ? $cells : $oeCells;
-            list($_r, $_c) = $cells[$cellIdx = (rand(0, count($cells) - 1))];
-            $return = array('x' => $_c, 'y' => $_r);
+            for ($hitShootCnt = 0; $hitShootCnt < $data['maxShots']; $hitShootCnt++) {
+                $cell = $cells[$cellIdx = (rand(0, count($cells) - 1))];
+                if ($cell) {
+                    list($_r, $_c) = $cell;
+                    $return[] = array('x' => $_c, 'y' => $_r);
+                    unset($cells[$cellIdx]);
+                }
+            }
         }
         return $return;
     }
@@ -265,14 +272,13 @@ class Board {
      * Notify opponent's shoots
      * @return this
      */
-    protected function _notifyOp($data) {
-        $key = static::key($data['y'], $data['x']);
+    protected function _notifyOp($data, $key) {
         // Store shoots by key!
         $this->_opponentsShoots[$key] += $data['isHit'];
         return $this;
     }
 
-    protected function _notifyAddRelHitCells($data) {
+    protected function _notifyAddRelHitCells($data, $key) {
         $cells = $this->getRelativeCells($data['y'], $data['x'], array('include_current' => true));
         // Cal relative cells
         foreach ($cells as $cell) {
@@ -290,12 +296,11 @@ class Board {
         }
     }
 
-    protected function _notifySunkShips($data) {
-        $sunkShips = $data['sunkShips'];
+    protected function _notifySunkShips($data, $key) {
+        $sunkShips = (array)$data['sunkShips'];
         // Mark opponent ship as sunk!
         $oSunk = 0;
-        foreach ((array)$sunkShips as $sunkShip) {
-
+        foreach ($sunkShips as $sunkShip) {
             foreach ($this->_ships as &$ship) {
                 if (strtolower($ship['type']) == strtolower($sunkShip['type'])) {
                     $ship['osunk'] = $oSunk = 1;
@@ -312,14 +317,15 @@ class Board {
         // ...
         
         // 
-        foreach ((array)$sunkShips as $sunkShip) {
+        foreach ($sunkShips as $sunkShip) {
             $nullHitShootCells = array();
-            foreach ((array)$sunkShip['coordinates'] as $pos) {
+            $coordinates = (array)($sunkShip['coordinates'] ?: $sunkShip['positions']);
+            foreach ($coordinates as $pos) {
                 list($_c, $_r) = $pos;
                 $_k = static::key($_r, $_c);
                 // Chuyen tat ca o (cells) cua tau ve (false)
                 $this->_hitShoots[$_k] = false; // , --> ho tro _removeUnnecessaryHitShoots
-                $this->_shoots[$_k] = false; // , --> ho tro checkAvail!
+                $this->_shoots[$_k] = false; // , --> ho tro _checkAvail!
                 //
                 $relCells = $this->getRelativeCells($_r, $_c);
                 foreach ($relCells as $__k => $relCell) {
@@ -335,7 +341,7 @@ class Board {
                     // @TODO: use this feature???? 
                     // $this->_hitShoots[$__k] = 0;
                 }
-                var_dump("\$nullHitShootCells of `{$sunkShip['type']}`: " . implode(' | ', $nullHitShootCells));
+                DEBUG && var_dump("\$nullHitShootCells of `{$sunkShip['type']}`: " . implode(' | ', $nullHitShootCells));
             }
         }
     }
@@ -345,20 +351,24 @@ class Board {
      * @return array
      */
     public function notify($data) {
-        // Notify for opponent's shoots
-        $notifyOp = static::PLAYER_ID != ($playerId = $data['playerId']);
-        if ($notifyOp) {
-            return $this->_notifyOp($data);
-        }
         // Get, format data
+        // +++
         $key = static::key($data['y'], $data['x']);
+        // +++
         $isHit = $data['isHit'];
-        // Opponent's ship sunk?
-        $sunkShips = $data['sunkShips'];
+        // +++ Opponent's ship sunk?
+        $sunkShips = (array)$data['sunkShips'];
+        // +++ Notify for opponent's shoots
+        $notifyOp = static::PLAYER_ID != ($playerId = $data['playerId']);
+        
+        //
+        if ($notifyOp) {
+            return $this->_notifyOp($data, $key);
+        }
 
         // Case: hit. Add relative cells to list.
         if ($isHit) {
-            $this->_notifyAddRelHitCells($data);
+            $this->_notifyAddRelHitCells($data, $key);
         }
 
         // Record shoots result?
@@ -370,19 +380,26 @@ class Board {
         $this->_shoots[$key] += $isHit;
 
         // Case: ship(s) sunk
-        if ($sunkShips) {
-            $this->_notifySunkShips($data);
+        if (!empty($sunkShips)) {
+            $this->_notifySunkShips($data, $key);
         }
         
         // Reorder priority of hit shoots
-        $this->_reorderPriorityHitShoots();
+        $this->_reorderPriorityHitShoots($data, $key);
         
         // Remove unnecessary hit shoots
-        $this->_removeUnnecessaryHitShoots();
+        $this->_removeUnnecessaryHitShoots($data, $key);
 
         // Kiem tra tinh du thua cua cac o (cells) --> loai bo.
-        // $this->checkAvail();
+        $this->_checkAvail();
         // #end
+    }
+    
+    /**
+     * 
+     */
+    public function gameOver() {
+        
     }
     
     /**
@@ -621,7 +638,7 @@ class Board {
     /**
      * Kiem tra tinh du thua cua cac o (cells) --> loai bo.
      */
-    public function checkAvail($data = null) {
+    protected function _checkAvail($data = null) {
         // Started with a board that all cells are unavailable!
         $cells = array();
         //
@@ -646,7 +663,7 @@ class Board {
                 $autoShoots[] = $key;
             }
         });
-        if (!empty($autoShoots)) {
+        if (!empty($autoShoots) && DEBUG) {
             echo '<pre>$autoShoots '; var_dump($autoShoots); echo '</pre>';
         }
     }
