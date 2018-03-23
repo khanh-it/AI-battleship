@@ -5,6 +5,7 @@ require_once('board.php');
 //
 define('DEBUG', false);
 define('PLAYER_ID', getenv('AI_NAME') ?: 'ea_team_no1');
+define('PRODUCTION', PLAYER_ID === 'ea_team_no1');
 
 /**
  * Class for working with game engine!
@@ -27,12 +28,12 @@ class Battleship {
     protected $_data_dir = '';
 
     /**
-     * @var stdClass Last game saved data
+     * @var array Last game saved data
      */
     protected $_data = null;
 
     /**
-     * 
+     * @var array
      */
 	protected $_response = array();
 	
@@ -42,7 +43,9 @@ class Battleship {
 	protected $_board;
 
     /**
-     * 
+     * Format game-engine incomming request
+     * @param array $request
+     * @return array
      */
     protected function _formatRequest($request) {
         preg_match('/\/([^\/]+)\/?/', $_SERVER['REQUEST_URI'], $type) && ($type = $type[1]);
@@ -81,7 +84,10 @@ class Battleship {
 	}
 	
 	/**
-	 *
+	 * Response data to client (game-engine)
+	 * @param array $data
+	 * @param mixed $error
+	 * @return string JSON
 	 */
 	public function response($data = null, $error = null) {
 	    // Headers
@@ -89,6 +95,8 @@ class Battleship {
 	    header('X-TOKEN: ' . $this->_X_TOKEN);
 	    // Body
 	    if ($error) {
+	        // https://stackoverflow.com/questions/4162223/how-to-send-500-internal-server-error-error-from-a-php-script
+	        header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
 	        $this->_response['error'] = $error;
 	    } else {
 	        $this->_response = $data;
@@ -98,11 +106,13 @@ class Battleship {
 	}
 
 	/**
-     * 
+     * Response data to client (game-engine) with format of JSON
+	 * @param array $data
+	 * @return string JSON
      */
 	public static function resJSON($data) {
 		header('content-type: text/json;charset=UTF-8');
-		$json = json_encode($data);
+		$json = @json_encode($data);
 		die($json);
 	}
 
@@ -118,7 +128,7 @@ class Battleship {
 	    // +++ game data
 	    $dataDir = realpath($options['data_dir']);
 	    if (!$dataDir) {
-	        throw new Exception('Data directory info is required!');
+	        return $this->response(null, 'Data directory info is required!');
 	    }
 	    $this->_data_dir = "{$dataDir}/";
 	    // +++ load game data
@@ -161,7 +171,7 @@ class Battleship {
 			case 'notify':
 			    $this->_notify($request['data']);
 			    break;
-            // Check available
+            // Game over
 			case 'game-over':
 			    $this->_gameOver($request['data']);
 			    break;
@@ -178,9 +188,9 @@ class Battleship {
         // Format data
         $data = (array)(is_null($data) ? $this->_data : $data);
         // Save (replace) data
-        $saveGameID = $this->_X_SESSION_ID . "_" . PLAYER_ID;
+        $saveGameID = md5($this->_X_SESSION_ID) . "_" . PLAYER_ID;
         $filename = "{$this->_data_dir}{$saveGameID}.json";
-        file_put_contents($filename, json_encode($data, JSON_PRETTY_PRINT, 10));
+        file_put_contents($filename, @json_encode($data, PRODUCTION ? JSON_PRETTY_PRINT : null));
         return $this;
     }
     
@@ -189,13 +199,14 @@ class Battleship {
      * @return array
      */
     protected function _loadGameData() {
-        $saveGameID = $this->_X_SESSION_ID . "_" . PLAYER_ID;
+        $saveGameID = md5($this->_X_SESSION_ID) . "_" . PLAYER_ID;
         $filename = "{$this->_data_dir}{$saveGameID}.json";
         $json = trim(@file_get_contents($filename));
         return $this->_data = (array)(@json_decode($json, true));
     }
 	
 	/**
+	 * GE/invite
      * @param array $data Request data
      * @return string (JSON)
      */
@@ -208,6 +219,7 @@ class Battleship {
     }
     
     /**
+     * GE/place-ships
      * @param array $data Request data
      * @return string (JSON)
      */
@@ -228,11 +240,12 @@ class Battleship {
     }
 	
 	/**
-	 * Request fire
+     * GE/shoot
+     * @param array $data Request data
+     * @return string (JSON)
 	 */
 	protected function _shoot($data) {
 	    // Format data
-	    $data = (array)$data;
 	    $data['maxShots'] = ($data['max_shots'] ?: $data['maxShots']);
 	    $data['maxShots'] = (intval($data['maxShots']) <= 0) ? 1 : $data['maxShots'];
 	    unset($data['max_shots']);
@@ -255,9 +268,12 @@ class Battleship {
 	}
 	
 	/**
-	 *
+     * GE/notify
+     * @param array $data Request data
+     * @return string (JSON)
 	 */
 	protected function _notify($data) {
+	    // Format data
 	    $data['shots'] = (array)$data['shots'];
 	    $data['sunkShips'] = (array)($data['sunk_ships'] ?: $data['sunkShips']);
 	    unset($data['sunk_ships']);
@@ -280,10 +296,11 @@ class Battleship {
 	}
 	
 	/**
-	 *
+     * GE/notify
+     * @param array $data Request data
+     * @return string (JSON)
 	 */
 	protected function _gameOver($data) {
-	    // Request fire
 	    $resData = $this->_board->gameOver($data);
 	    //
 	    return $this->response($resData);
@@ -293,8 +310,7 @@ class Battleship {
 	 * 
 	 */
 	public function __destruct() {
-	    //
-	    // +++
+	    // Save game data
 	    $this->_data['board'] = $this->_board->toArr();
 	    //
 	    $this->_saveGameData();
