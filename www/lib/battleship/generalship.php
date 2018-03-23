@@ -62,27 +62,71 @@ class Generalship
             }
             shuffle($this->_shipsType);
 
-            while($type = array_pop($this->_shipsType)){
-                $ship = $this->randomShip($type);
+            $count = 1;
+            $constantConfigRandom = [
+                1 => [
+                    'xMin' => 0,
+                    'xMax' => (Board::$cols / 2) - 1,
+                    'yMin' => 0,
+                    'yMax' => (Board::$rows / 2) - 1
+                ],
+                2 => [
+                    'xMin' => Board::$cols / 2,
+                    'xMax' => Board::$cols - 1,
+                    'yMin' => 0,
+                    'yMax' => (Board::$rows / 2) - 1
+                ],
+                3 => [
+                    'xMin' => 0,
+                    'xMax' => (Board::$cols / 2) - 1,
+                    'yMin' => Board::$rows / 2,
+                    'yMax' => Board::$rows - 1
+                ],
+                4 => [
+                    'xMin' => Board::$cols / 2,
+                    'xMax' => Board::$cols - 1,
+                    'yMin' => Board::$rows / 2,
+                    'yMax' => Board::$rows - 1
+                ]
+            ];
+
+            while($type = array_pop($this->_shipsType)) {
+                // Init config random
+                $configRandom = $constantConfigRandom[$count];
+
+                $ship = $this->randomShip($type, null, $configRandom);
                 $this->_data[] = $ship;
                 $this->drawShip($this->_ships[$ship['x'] . '_' . $ship['y']]);
 
                 $type = array_pop($this->_shipsType);
                 if ($type) {
-                    $ship = $this->randomShip($type, $ship);
+                    $ship = $this->randomShip($type, $ship, $configRandom);
                     $this->_data[] = $ship;
                     $this->drawShip($this->_ships[$ship['x'] . '_' . $ship['y']]);
+                }
+
+                // Reset count
+                if ($count == 4) {
+                    $count = 1;
+                } else {
+                    $count++;
                 }
             }
         }
         return $this->_data;
     }
 
-    private function randomShip($type, $shipNext = null)
+    private function randomShip($type, $shipNext = null, $configRandom = [])
     {
         $direcArr = Ship::returnDirecArr();
-        $x = rand(0, Board::$cols - 1);
-        $y = rand(0, Board::$rows - 1);
+
+        if (empty($configRandom)) {
+            $x = rand(0, Board::$cols - 1);
+            $y = rand(0, Board::$rows - 1);
+        } else {
+            $x = rand($configRandom['xMin'], $configRandom['xMax']);
+            $y = rand($configRandom['yMin'], $configRandom['yMax']);
+        }
 
         // Get position for ship with next ship
         if (!empty($shipNext)) {
@@ -110,7 +154,7 @@ class Generalship
         $shipData = (new Ship($ship['type'], $ship))->toArr();
 
         if (!$this->checkAvailable($shipData)) {
-            return $this->randomShip($type, $shipNext);
+            return $this->randomShip($type, $shipNext, $configRandom);
         }
 
         $this->_ships[$x . '_' . $y] = $shipData;
