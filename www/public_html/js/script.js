@@ -17,11 +17,11 @@
 	/**
 	 | @var string
 	 */
-	var player1 = 'ea_team_no1';
+	var player1 = 'bot2';
 	/**
 	 | @var string
 	 */
-	var player2 = 'player2_' + Date.now();
+	var player2 = 'bot1';
 
 	/**
 	 |
@@ -117,7 +117,7 @@
 		/**
 		 | 
 		 */
-		notify: function notify(dataArr) {
+		notify: function notify(dataArr, cb) {
 			var notifyData = {
 				playerId: player1,
 				shots: [],
@@ -164,8 +164,13 @@
 				$tdShips = this._$board.find('td[data-ship]');
 				$tdShoots = $tdShips.filter('td[data-shoot]');
 				if ($tdShips.length == $tdShoots.length) {
+					// Fire callback
+					(cb || $.noop)();
+					//
 					this._$board.attr('data-game_end', 1);
-					setTimeout(function(){ alert('Game end!!!'); }, 256);
+					setTimeout(function(){
+						alert('Game over!!!');
+					}, 256);
 				}
 				console.log('shoot#' + Battleship.shootCnt + ' data: ', (data[1] + ':' + data[0]), ' - notifyData: ', notifyData);
 			}
@@ -252,7 +257,7 @@
 		/**
 		 | 
 		 */
-		gameOver: function gameOver(data) {
+		gameOver: function gameOver(data, cb) {
 			this.call('game-over', $.extend(data, {}), cb);
 		}
 	};
@@ -337,7 +342,18 @@
 					return alert(err);
 				}
 				//
-				var notifyData = self._board.notify(data);
+				var notifyData = self._board.notify(data, function(){
+					// Game over
+					var data = {
+						winner: player1,
+						loser: player2,
+						statistics: {
+							numberOfTurns: self.shootCnt,
+							elapsedTime: 0
+						}
+					};
+					self._bot.gameOver();
+				});
 				self._bot.notify(notifyData);
 				// Fire callback
 				cb();

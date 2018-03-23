@@ -60,7 +60,6 @@ class Ship {
         $dH = static::DIREC_H;
         $dV = static::DIREC_V;
         $direction = ($dV == $direction) ? $dV : $dH;
-//        $direction = static::DIREC_V;
         
         $matrix = array(
             static::TYPE_CARRIER => array(
@@ -208,12 +207,6 @@ class Ship {
 	}
 	
 	public function getCoordinates() {
-	    return array(
-	        $this->_x, $this->_y
-	    );
-	}
-
-    public function getCoordinates2() {
 	    $posY = $this->_y;
 	    $coordinates = [];
 	    foreach ($this->_matrix as $row) {
@@ -233,15 +226,14 @@ class Ship {
 		return array(
 			'type' => $this->_type,
 		    'coordinates' => $this->getCoordinates(),
-		    'coordinates2' => $this->getCoordinates2(),
 			'matrix' => $this->_matrix,
 			'x' => $this->_x,
             'y' => $this->_y,
             // 'direction' => $this->_direction,
-            'sunk' => 0,
+            // 'sunk' => 0,
             // opponent data
-            'ox' => 0,
-            'oy' => 0,
+            // 'ox' => 0,
+            // 'oy' => 0,
             'osunk' => 0
 		);
 	}

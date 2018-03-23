@@ -3,7 +3,8 @@
 require_once('board.php');
 
 //
-define('DEBUG', true);
+define('DEBUG', false);
+define('PLAYER_ID', getenv('AI_NAME') ?: 'ea_team_no1');
 
 /**
  * Class for working with game engine!
@@ -47,7 +48,7 @@ class Battleship {
         preg_match('/\/([^\/]+)\/?/', $_SERVER['REQUEST_URI'], $type) && ($type = $type[1]);
         return array(
             'type' => strtolower($type),
-            'data' => $request
+            'data' => json_decode(@file_get_contents('php://input'), true) ?: $_REQUEST
         );
 	}
 	
@@ -100,7 +101,7 @@ class Battleship {
      * 
      */
 	public static function resJSON($data) {
-		header('text/json');
+		header('content-type: text/json;charset=UTF-8');
 		$json = json_encode($data);
 		die($json);
 	}
@@ -177,7 +178,7 @@ class Battleship {
         // Format data
         $data = (array)(is_null($data) ? $this->_data : $data);
         // Save (replace) data
-        $saveGameID = $this->_X_SESSION_ID;
+        $saveGameID = $this->_X_SESSION_ID . "_" . PLAYER_ID;
         $filename = "{$this->_data_dir}{$saveGameID}.json";
         file_put_contents($filename, json_encode($data, JSON_PRETTY_PRINT, 10));
         return $this;
@@ -188,7 +189,7 @@ class Battleship {
      * @return array
      */
     protected function _loadGameData() {
-        $saveGameID = $this->_X_SESSION_ID;
+        $saveGameID = $this->_X_SESSION_ID . "_" . PLAYER_ID;
         $filename = "{$this->_data_dir}{$saveGameID}.json";
         $json = trim(@file_get_contents($filename));
         return $this->_data = (array)(@json_decode($json, true));
@@ -213,18 +214,28 @@ class Battleship {
     protected function _placeShips($data) {
         $this->_board->placeShips($data);
         $dboard = $this->_board->toArr();
-        $resData = array(
-            'ships' => $dboard['ships'],
-            // 'shoots' => $dboard['shoots']
-        );
+        //
+        $ships = array();
+        foreach ((array)$dboard['ships'] as $ship) {
+            $ships[] = array(
+                ($key = 'type') => $ship[$key],
+                ($key = 'coordinates') => $ship[$key],
+            );
+        }
+        $resData = array('ships' => $ships);
         //
         return $this->response($resData);
     }
 	
 	/**
-	 *
+	 * Request fire
 	 */
 	protected function _shoot($data) {
+	    // Format data
+	    $data = (array)$data;
+	    $data['maxShots'] = ($data['max_shots'] ?: $data['maxShots']);
+	    $data['maxShots'] = (intval($data['maxShots']) <= 0) ? 1 : $data['maxShots'];
+	    unset($data['max_shots']);
 	    // Request fire
 	    $coordinates = array();
 	    $shoots = (array)$this->_board->shoot($data);
@@ -234,20 +245,33 @@ class Battleship {
 	    foreach ($shoots as $shoot) {
 	        $coordinates[] = array($shoot['x'], $shoot['y']);
 	    }
+	    $resData = array('coordinates' => $coordinates);
+	    
+	    if (count($coordinates) > 1) {
+	        $this->_data['_shoot___']['turn_' . $data['turn'] . '#maxShots_' . $data['maxShots']] = $coordinates;
+        }
 	    //
-	    return $this->response($coordinates);
+	    return $this->response($resData);
 	}
 	
 	/**
 	 *
 	 */
 	protected function _notify($data) {
-	    foreach ((array)$data['shots'] as $shot) {
+	    $data['shots'] = (array)$data['shots'];
+	    $data['sunkShips'] = (array)($data['sunk_ships'] ?: $data['sunkShips']);
+	    unset($data['sunk_ships']);
+	    
+	    /* if (!empty($data['sunkShips'])) {
+	        $this->_data['_notify___'] = $data;
+	    } */
+	    
+	    foreach ($data['shots'] as $shot) {
 	        $_data = array(
 	            'playerId' => $data['playerId'],
 	            'x' => $shot['coordinate'][0],
 	            'y' => $shot['coordinate'][1],
-	            'isHit' => intval('HIT' === strtoupper($shot['status'])),
+	            'isHit' => intval('HIT' === $shot['status']),
 	            'sunkShips' => $data['sunkShips'],
 	        );
 	        $this->_board->notify($_data);
