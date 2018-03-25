@@ -30,7 +30,7 @@ class Battleship {
     /**
      * @var array Last game saved data
      */
-    protected $_data = null;
+    public $data = null;
 
     /**
      * @var array
@@ -101,6 +101,9 @@ class Battleship {
 	    } else {
 	        $this->_response = $data;
 	    }
+		// Log
+		@$this->_log('[RES] ' . @json_encode($this->_response, JSON_PRETTY_PRINT));
+		@$this->_log(str_repeat('-', 80), false);
 	    //
 	    return static::resJSON($this->_response);
 	}
@@ -130,13 +133,13 @@ class Battleship {
 	    if (!$dataDir) {
 	        return $this->response(null, 'Data directory info is required!');
 	    }
-	    $this->_data_dir = "{$dataDir}/";
+		$this->_data_dir = realpath($dataDir) . "/";
 	    // +++ load game data
 	    $this->_loadGameData();
 	    // #end
 
 	    // Init board?
-	    $this->_board = new Board($this->_data['board']);
+	    $this->_board = new Board($this->data['board']);
 	    // #end
 	    
 	    // Save game data on reqquest shutdown!
@@ -153,6 +156,8 @@ class Battleship {
         $request = $this->_formatRequest(
 			(array)(is_null($request) ? $_REQUEST : $request)
 		);
+		// Log
+		@$this->_log('[REQ] ' . @json_encode($request, JSON_PRETTY_PRINT));
 		//
 		switch ($request['type']) {
 			// Invite (start new game)
@@ -176,8 +181,16 @@ class Battleship {
 			    $this->_gameOver($request['data']);
 			    break;
 		}
-		//
+		// default
 		static::response($this->_response);
+    }
+    
+    /**
+     * Get game ID
+     * @return string
+     */
+    protected function _gameID() {
+        return $saveGameID = md5($this->_X_SESSION_ID) . "_" . PLAYER_ID;
     }
     
     /**
@@ -186,23 +199,35 @@ class Battleship {
      */
     protected function _saveGameData($data = null) {
         // Format data
-        $data = (array)(is_null($data) ? $this->_data : $data);
+        $data = (array)(is_null($data) ? $this->data : $data);
         // Save (replace) data
-        $saveGameID = md5($this->_X_SESSION_ID) . "_" . PLAYER_ID;
-        $filename = "{$this->_data_dir}{$saveGameID}.json";
-        file_put_contents($filename, @json_encode($data, PRODUCTION ? JSON_PRETTY_PRINT : null));
+        $gameID = $this->_gameID();
+		$filename = "{$this->_data_dir}{$gameID}.json";
+        file_put_contents($filename, @json_encode($data, PRODUCTION ? null : JSON_PRETTY_PRINT));
         return $this;
     }
     
     /**
-     * LOad game data
+     * Load game data
      * @return array
      */
     protected function _loadGameData() {
-        $saveGameID = md5($this->_X_SESSION_ID) . "_" . PLAYER_ID;
-        $filename = "{$this->_data_dir}{$saveGameID}.json";
+        $gameID = $this->_gameID();
+        $filename = "{$this->_data_dir}{$gameID}.json";
         $json = trim(@file_get_contents($filename));
-        return $this->_data = (array)(@json_decode($json, true));
+        return $this->data = (array)(@json_decode($json, true));
+    }
+    
+    /**
+     * Log game-engine request
+	 * @param $log Log str
+     * @return this
+     */
+    protected function _log($log, $prependDatetime = true) {
+        $gameID = $this->_gameID();
+		$filename = "{$this->_data_dir}{$gameID}.log";
+        file_put_contents($filename, ($prependDatetime ? date('[Y-m-d H:i:s] ') : '') . $log . PHP_EOL, FILE_APPEND);
+        return $this;
     }
 	
 	/**
@@ -261,7 +286,7 @@ class Battleship {
 	    $resData = array('coordinates' => $coordinates);
 	    
 	    if (count($coordinates) > 1) {
-	        $this->_data['_shoot___']['turn_' . $data['turn'] . '#maxShots_' . $data['maxShots']] = $coordinates;
+	        $this->data['_shoot___']['turn_' . $data['turn'] . '#maxShots_' . $data['maxShots']] = $coordinates;
         }
 	    //
 	    return $this->response($resData);
@@ -279,7 +304,7 @@ class Battleship {
 	    unset($data['sunk_ships']);
 	    
 	    /* if (!empty($data['sunkShips'])) {
-	        $this->_data['_notify___'] = $data;
+	        $this->data['_notify___'] = $data;
 	    } */
 	    
 	    foreach ($data['shots'] as $shot) {
@@ -311,8 +336,7 @@ class Battleship {
 	 */
 	public function __destruct() {
 	    // Save game data
-	    $this->_data['board'] = $this->_board->toArr();
-	    //
-	    $this->_saveGameData();
+	    $this->data['board'] = $this->_board->toArr();
+		$this->_saveGameData();
 	}
 }
