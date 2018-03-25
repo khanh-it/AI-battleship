@@ -268,7 +268,7 @@ class Board {
             }
             if ($maxShoots > 1) {
                 $battleship = static::battleshipInst();
-                $battleship->data['__DEBUG-maxShoots2nd'] = "{$maxShoots}#{$maxShootsStr}";
+                $battleship->debug('maxShoots2nd', "{$maxShoots}#{$maxShootsStr}");
             }
         }
         return $return;
@@ -421,7 +421,7 @@ class Board {
                 foreach ($removedNullHitShootCells as $_k) {
                     unset($this->_hitShoots[$_k]);
                 }
-                $battleship->data['__DEBUG-notifyWillFindNextShip'][] = "Org: " . implode(' | ', $nullHitShootCells) . " Removed: " . implode(' | ', $removedNullHitShootCells);
+                $battleship->debug('notifyWillFindNextShip', "Org: " . implode(' | ', $nullHitShootCells) . " Removed: " . implode(' | ', $removedNullHitShootCells));
             }
         }
         //
@@ -730,7 +730,7 @@ class Board {
                     $hitShoots[$_k] = null;
                 }
                 $this->_hitShoots = $hitShoots;
-                $battleship->data['__DEBUG-reorderHitShoots2nd__'][] = $DEBUG;
+                $battleship->debug('reorderHitShoots2nd', $DEBUG);
             }
         }
         //
@@ -777,7 +777,7 @@ class Board {
             }
         }
         if (!empty($removedHitShoots)) {
-            DEBUG && var_dump('$removedHitShoots: ' . implode(' | ', $removedHitShoots));
+            static::battleshipInst()->debug('removedHitShoots', implode(' | ', $removedHitShoots));
         }
     }
     
@@ -809,8 +809,8 @@ class Board {
                 $autoShoots[] = $key;
             }
         });
-        if (!empty($autoShoots) && DEBUG) {
-            echo '<pre>$autoShoots '; var_dump($autoShoots); echo '</pre>';
+        if (!empty($autoShoots)) {
+            static::battleshipInst()->debug('autoShoots', implode(' | ', $autoShoots));
         }
     }
     

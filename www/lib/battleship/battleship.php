@@ -286,7 +286,7 @@ class Battleship {
 	    $resData = array('coordinates' => $coordinates);
 	    
 	    if (count($coordinates) > 1) {
-	        $this->data['_shoot___']['turn_' . $data['turn'] . '#maxShots_' . $data['maxShots']] = $coordinates;
+	        $this->debug('shoot', 'turn_' . $data['turn'] . '#maxShots_' . $data['maxShots'] . '#coordinates' . @json_encode($coordinates));
         }
 	    //
 	    return $this->response($resData);
@@ -302,11 +302,6 @@ class Battleship {
 	    $data['shots'] = (array)$data['shots'];
 	    $data['sunkShips'] = (array)($data['sunk_ships'] ?: $data['sunkShips']);
 	    unset($data['sunk_ships']);
-	    
-	    /* if (!empty($data['sunkShips'])) {
-	        $this->data['_notify___'] = $data;
-	    } */
-	    
 	    foreach ($data['shots'] as $shot) {
 	        $_data = array(
 	            'playerId' => $data['playerId'],
@@ -331,6 +326,18 @@ class Battleship {
 	    return $this->response($resData);
 	}
 	
+	/**
+     * Debug helper
+     * @param string $info
+     * @return string
+	 */
+	public function debug($label, $info) {
+		$parts = explode('.', (string)microtime(true));
+		$key = date('H:i:s:') . $parts[1];
+		$this->data['DEBUG'][$label][$key] = $info;
+	    return $this;
+	}
+
 	/**
 	 * 
 	 */
