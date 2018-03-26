@@ -66,7 +66,14 @@ class Board {
     /**
      * @var integer Maximun number of missed shoot per block
      */
-    protected $_shoots_per_block = 4;
+    protected $_shoots_per_block = 3;
+
+    /**
+     * @return Battleship
+     */
+    public static function battleshipInst() {
+        return $GLOBALS['battleship'];
+    }
     
     /**
      * Build string key from $row, $col
@@ -106,7 +113,6 @@ class Board {
      */
     public function invite($data = null) {
         // init ships
-        // echo '<pre>invite '; var_dump($data); echo '</pre>';die();
         $this->_gameEngineData['invite'] = $data;
         //
         return $this;
@@ -139,9 +145,9 @@ class Board {
     }
     
     /**
-     * 
-     * @param unknown $row
-     * @param unknown $col
+     * Get relative cells of a cell
+     * @param interger $row
+     * @param interger $col
      * @return array
      */
     public function getRelativeCells($row, $col, array $options = array()) {
@@ -166,14 +172,49 @@ class Board {
     }
     
     /**
+     * @param array $data 
+     * @param bool $calByOurShips
+     * @return interger
+     */
+    protected function _shootCalMaxShoots($data, $calByOurShips = false) {
+        $maxShots = 1;
+        // Vars
+        $sunkShipCnt = 0; // Number of ours ships was sunk
+        $oSunkShipCnt = 0; // Number of opponent's ships was sunk
+        foreach ($this->_ships as $ship) {
+            if ($ship['sunk']) {
+                $sunkShipCnt += 1;
+            }
+            if ($ship['osunk']) {
+                $oSunkShipCnt += 1;
+            }
+        }
+        // Calculate based on ours ships
+        if ($calByOurShips) {
+            if ((count($this->_ships) - $sunkShipCnt) <= 2 /* @TODO: limit? */) {
+                $maxShots = intval($data['maxShots']) ?: $maxShots;
+            }
+        // Calculate based on opponent's ships
+        } else {    
+            if ((count($this->_ships) - $oSunkShipCnt) <= 3 /* @TODO: limit? */) {
+                $maxShots = intval($data['maxShots']) ?: $maxShots;
+            }
+        }
+        // #end
+        //
+        return $maxShots;
+    }
+
+    /**
      * Our shoot
+     * @param $data 
      * @return array
      */
     public function shoot($data) {
-        //
         $data = (array)$data;
         $return = array();
         // Target mode [trace hit shoots]?
+        $maxShoots = $this->_shootCalMaxShoots($data);
         $hitShootCnt = 0;
         foreach ($this->_hitShoots as $_k => $val) {
             if (is_null($val) && is_null($this->_shoots[$_k])) {
@@ -181,7 +222,7 @@ class Board {
                 $return[] = array('x' => $col, 'y' => $row);
                 $hitShootCnt++;
             }
-            if ($data['maxShots'] && ($hitShootCnt >= $data['maxShots'])) {
+            if ($hitShootCnt >= $maxShoots) {
                 break;
             }
         }
@@ -214,13 +255,20 @@ class Board {
                 }
             }, $rowMin, $colMin, $rowMax, $colMax);
             $cells = empty($oeCells) ? $cells : $oeCells;
-            for ($hitShootCnt = 0; $hitShootCnt < $data['maxShots']; $hitShootCnt++) {
+            $maxShoots = $this->_shootCalMaxShoots($data, true);
+            $maxShootsStr = '';
+            for ($hitShootCnt = 0; $hitShootCnt < $maxShoots; $hitShootCnt++) {
                 $cell = $cells[$cellIdx = (rand(0, count($cells) - 1))];
                 if ($cell) {
                     list($_r, $_c) = $cell;
                     $return[] = array('x' => $_c, 'y' => $_r);
+                    $maxShootsStr .= ('|' . implode(':', array('x' => $_c, 'y' => $_r)));
                     unset($cells[$cellIdx]);
                 }
+            }
+            if ($maxShoots > 1) {
+                $battleship = static::battleshipInst();
+                $battleship->debug('maxShoots2nd', "{$maxShoots}#{$maxShootsStr}");
             }
         }
         return $return;
@@ -275,6 +323,19 @@ class Board {
     protected function _notifyOp($data, $key) {
         // Store shoots by key!
         $this->_opponentsShoots[$key] += $data['isHit'];
+        // Mark ours ship(s) as sunk!
+        $sunkShips = (array)$data['sunkShips'];
+        foreach ($sunkShips as $sunkShip) {
+            foreach ($this->_ships as &$ship) {
+                if (!$ship['sunk'] && (strtolower($ship['type']) == strtolower($sunkShip['type']))) {
+                    $ship['sunk'] = 1;
+                    break;
+                }
+            }
+        }
+        unset($ship, $sunkShip);
+        // #end
+        //
         return $this;
     }
 
@@ -296,26 +357,21 @@ class Board {
         }
     }
 
+    /**
+     * 
+     */
     protected function _notifySunkShips($data, $key) {
         $sunkShips = (array)$data['sunkShips'];
         // Mark opponent ship as sunk!
-        $oSunk = 0;
         foreach ($sunkShips as $sunkShip) {
             foreach ($this->_ships as &$ship) {
-                if (strtolower($ship['type']) == strtolower($sunkShip['type'])) {
-                    $ship['osunk'] = $oSunk = 1;
+                if (!$ship['osunk'] && (strtolower($ship['type']) == strtolower($sunkShip['type']))) {
+                    $ship['osunk'] = 1;
                     break;
                 }
             }
-            if ($oSunk) { break; }
         }
-        unset($ship, $sunkShip, $oSunk);
-
-        // @TODO
-        // Kiem tra lai lich su ban tau so voi vi tri tau (game engine gui len).
-        // Neu, van con hit cell nam ngoai vi tri tau --> chac 100% la van con tau gan ben.
-        // ...
-        
+        unset($ship, $sunkShip);
         // 
         foreach ($sunkShips as $sunkShip) {
             $nullHitShootCells = array();
@@ -326,24 +382,50 @@ class Board {
                 // Chuyen tat ca o (cells) cua tau ve (false)
                 $this->_hitShoots[$_k] = false; // , --> ho tro _removeUnnecessaryHitShoots
                 $this->_shoots[$_k] = false; // , --> ho tro _checkAvail!
-                //
-                $relCells = $this->getRelativeCells($_r, $_c);
-                foreach ($relCells as $__k => $relCell) {
-                    if (array_key_exists($__k, $this->_hitShoots) && is_null($this->_hitShoots[$__k])) {
-                        $nullHitShootCells[] = $__k;
+            }
+        }
+        //
+        return $this;
+    }
+
+    /**
+     * Luu y:
+     *  Kiem tra lai lich su ban tau so voi vi tri tau (game engine gui len).
+     *  Neu, van con hit cell nam ngoai vi tri tau --> chac 100% la van con tau gan ben.
+     */
+    protected function _notifyWillFindNextShip($data, $key) {
+        $battleship = static::battleshipInst();
+        $sunkShips = (array)$data['sunkShips'];
+        // 
+        if (!empty($sunkShips)) {
+            /* @TODO: max null hit shoot count? */;
+            $cnt = 0;
+            $maxCnt = 3;
+            $nullHitShootCells = array();
+            $removedNullHitShootCells = array();
+            foreach ($this->_hitShoots as $_k => $hitShoot) {
+                if ($hitShoot) {
+                    // Van con hit cell(s) nam ngoai vi tri tau --> khong thuc hien..!
+                    $removedNullHitShootCells = array();
+                    break;
+                }
+                if (is_null($hitShoot)) {
+                    $cnt += 1;
+                    $nullHitShootCells[] = $_k;
+                    if ($cnt > $maxCnt) {
+                        $removedNullHitShootCells[] = $_k;
                     }
                 }
             }
-            $leepCnt = count($nullHitShootCells) - 4 /* max null hit shoot count */;
-            if ($leepCnt > 0) {
-                for ($i = 0; $i < $leepCnt; $i++) {
-                    $__k = $nullHitShootCells[rand(0, count($nullHitShootCells) - 1)];
-                    // @TODO: use this feature???? 
-                    // $this->_hitShoots[$__k] = 0;
+            if (!empty($removedNullHitShootCells)) {
+                foreach ($removedNullHitShootCells as $_k) {
+                    unset($this->_hitShoots[$_k]);
                 }
-                DEBUG && var_dump("\$nullHitShootCells of `{$sunkShip['type']}`: " . implode(' | ', $nullHitShootCells));
+                $battleship->debug('notifyWillFindNextShip', "Org: " . implode(' | ', $nullHitShootCells) . " Removed: " . implode(' | ', $removedNullHitShootCells));
             }
         }
+        //
+        return $this;
     }
     
     /**
@@ -358,10 +440,9 @@ class Board {
         $isHit = $data['isHit'];
         // +++ Opponent's ship sunk?
         $sunkShips = (array)$data['sunkShips'];
-        // +++ Notify for opponent's shoots
-        $notifyOp = static::PLAYER_ID != ($playerId = $data['playerId']);
         
-        //
+        // Notify for opponent's shoots
+        $notifyOp = static::PLAYER_ID != ($playerId = $data['playerId']);
         if ($notifyOp) {
             return $this->_notifyOp($data, $key);
         }
@@ -385,10 +466,14 @@ class Board {
         }
         
         // Reorder priority of hit shoots
-        $this->_reorderPriorityHitShoots($data, $key);
+        $this->_reorderHitShoots($data, $key);
+        $this->_reorderHitShoots2nd($data, $key);
         
         // Remove unnecessary hit shoots
         $this->_removeUnnecessaryHitShoots($data, $key);
+
+        // Decide to find next ship?
+        $this->_notifyWillFindNextShip($data, $key);
 
         // Kiem tra tinh du thua cua cac o (cells) --> loai bo.
         $this->_checkAvail();
@@ -451,8 +536,7 @@ class Board {
                     'sum' => $col + $row
                 );
                 //
-                $this->_blocks[$blockRow][$blockCol][] = $cell; 
-                // $this->_blocks[static::key($blockRow, $blockCol)] = '';
+                $this->_blocks[$blockRow][$blockCol][] = $cell;
             }
         }
     }
@@ -554,7 +638,7 @@ class Board {
      * De toi uu viec lua chon shoot tiep theo la gi, ta se lan luot dat tung tau (ships)
      * vao vi tri do, roi kiem tra xem cell(s) nao co uu tien cao hon thi sap xep lai.
      */
-    protected function _reorderPriorityHitShoots() {
+    protected function _reorderHitShoots() {
         $hitShoots = $this->_hitShoots;
         $reorderHitShoots = array();
         foreach ($hitShoots as $_k => $hitShoot) {
@@ -583,10 +667,72 @@ class Board {
             $strBf = implode('|', array_keys($this->_hitShoots));
             $strAf = implode('|', array_keys($hitShoots));
             if ($strBf != $strAf) {
-                echo("_reorderPriorityHitShoots: \r\nBf: " . $strBf . "\r\nAf: " . $strAf . "\r\n");
+                echo("_reorderHitShoots: \r\nBf: " . $strBf . "\r\nAf: " . $strAf . "\r\n");
             }
         }
         $this->_hitShoots = $hitShoots;
+        //
+        return $this;
+    }
+    
+    /**
+     * 
+     */
+    protected function _reorderHitShoots2nd() {
+        $battleship = static::battleshipInst();
+        $hitShoots = $this->_hitShoots;
+        $reorderHitShoots = array();
+        $containCells = array();
+        $availCells = array();
+        $DEBUG = array();
+        foreach ($hitShoots as $_k => $hitShoot) {
+            if (is_null($hitShoot)) {
+                $reorderHitShoots[$_k] = 0;
+                unset($hitShoots[$_k]);
+            }
+            if (!$hitShoot) {
+                continue;
+            }
+            $containCells[] = $_k;
+        }
+        if (!empty($reorderHitShoots) && !empty($containCells)) {
+            $DEBUG = array(
+                // 'hitShoots' => $this->_hitShoots,
+                'reorderHitShoots' => $reorderHitShoots,
+                'reorderHitShoots2' => array(),
+                'containCells' => $containCells
+            );
+            foreach ($this->_ships as $ship) {
+                if ($ship['osunk']) {
+                    continue;
+                }
+                $options = array(
+                    'merge_cells' => true
+                );
+                $_availCells = (array)$this->_shipContainCells($containCells, $ship, $options);
+                foreach ($_availCells as $_k => $__nouse__) {
+                    $availCells[$_k] += 1;
+                }
+            }
+        }
+        if (!empty($availCells)) {
+            $DEBUG['availCells'] = implode('|', array_keys($availCells));;
+            $reorderHitShoots2nd = array();
+            foreach ($reorderHitShoots as $_k => $_cnt) {
+                $reorderHitShoots2nd[$_k] = $_cnt + intval($availCells[$_k]);
+            }
+            uasort($reorderHitShoots2nd, function($a, $b){ return $a < $b; });
+            $strBf = implode('|', array_keys($reorderHitShoots));
+            $strAf = implode('|', array_keys($reorderHitShoots2nd));
+            if ($strBf != $strAf) {
+                $DEBUG['reorderHitShoots2'] = $reorderHitShoots2nd;
+                foreach ($reorderHitShoots2nd as $_k => $_cnt) {
+                    $hitShoots[$_k] = null;
+                }
+                $this->_hitShoots = $hitShoots;
+                $battleship->debug('reorderHitShoots2nd', $DEBUG);
+            }
+        }
         //
         return $this;
     }
@@ -631,7 +777,7 @@ class Board {
             }
         }
         if (!empty($removedHitShoots)) {
-            DEBUG && var_dump('$removedHitShoots: ' . implode(' | ', $removedHitShoots));
+            static::battleshipInst()->debug('removedHitShoots', implode(' | ', $removedHitShoots));
         }
     }
     
@@ -663,8 +809,8 @@ class Board {
                 $autoShoots[] = $key;
             }
         });
-        if (!empty($autoShoots) && DEBUG) {
-            echo '<pre>$autoShoots '; var_dump($autoShoots); echo '</pre>';
+        if (!empty($autoShoots)) {
+            static::battleshipInst()->debug('autoShoots', implode(' | ', $autoShoots));
         }
     }
     

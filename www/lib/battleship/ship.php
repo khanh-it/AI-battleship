@@ -230,7 +230,7 @@ class Ship {
 			'x' => $this->_x,
             'y' => $this->_y,
             // 'direction' => $this->_direction,
-            // 'sunk' => 0,
+            'sunk' => 0,
             // opponent data
             // 'ox' => 0,
             // 'oy' => 0,
