@@ -50,7 +50,7 @@ class Ship {
      * @return array
      */
     public static function returnDirecArr() {
-        return array(static::DIREC_H, static::DIREC_V);
+        return [static::DIREC_H, static::DIREC_V];
     }
     
     /**
@@ -60,69 +60,71 @@ class Ship {
         $dH = static::DIREC_H;
         $dV = static::DIREC_V;
         $direction = ($dV == $direction) ? $dV : $dH;
-        
-        $matrix = array(
-            static::TYPE_CARRIER => array(
-                $dH => array(
-                    array(0, 1, 0, 0),
-                    array(1, 1, 1, 1),
-                ),
-                $dV => array(
-                    array(0, 1),
-                    array(1, 1),
-                    array(0, 1),
-                    array(0, 1),
-                )
-            ),
+
+        $matrix = [
+            static::TYPE_CARRIER => [
+                $dH => [
+                    [0, 1, 0, 0],
+                    [1, 1, 1, 1],
+                ],
+                $dV => [
+                    [0, 1],
+                    [1, 1],
+                    [0, 1],
+                    [0, 1],
+                ]
+            ],
             // #end
-            static::TYPE_BATTLESHIP => array(
-                $dH => array(
-                    array(1, 1, 1, 1),
-                ),
-                $dV => array(
-                    array(1),
-                    array(1),
-                    array(1),
-                    array(1),
-                )
-            ),
+            static::TYPE_BATTLESHIP => [
+                $dH => [
+                    [1, 1, 1, 1],
+                ],
+                $dV => [
+                    [1],
+                    [1],
+                    [1],
+                    [1],
+                ]
+            ],
             // #end
-            static::TYPE_OILRIG => array(
-                $dH => array(
-                    array(1, 1),
-                    array(1, 1),
-                ),
-                $dV => array(
-                    array(1, 1),
-                    array(1, 1),
-                )
-            ),
+            static::TYPE_OILRIG => [
+                $dH => [
+                    [1, 1],
+                    [1, 1],
+                ],
+                $dV => [
+                    [1, 1],
+                    [1, 1],
+                ]
+            ],
             // #end
-            static::TYPE_DESROYER => array(
-                $dH => array(
-                    array(1, 1),
-                ),
-                $dV => array(
-                    array(1),
-                    array(1),
-                )
-            ),
+            static::TYPE_DESROYER => [
+                $dH => [
+                    [1, 1],
+                ],
+                $dV => [
+                    [1],
+                    [1],
+                ]
+            ],
             // #end
-            static::TYPE_CRUISER => array(
-                $dH => array(
-                    array(1, 1, 1),
-                ),
-                $dV => array(
-                    array(1),
-                    array(1),
-                    array(1),
-                )
-            ),
+            static::TYPE_CRUISER => [
+                $dH => [
+                    [1, 1, 1],
+                ],
+                $dV => [
+                    [1],
+                    [1],
+                    [1],
+                ]
+            ],
             // #end
-        );
+        ];
         
         // Return
-        return $matrix[$type][$direction];
+        $result = $matrix[$type][$direction];
+        unset($matrix);
+        return $result;
     }
     
     /**
@@ -139,7 +141,7 @@ class Ship {
     /**
      * @var array
      */
-    protected $_matrix = array();
+    protected $_matrix = [];
 	
 	/**
      * @var integer
@@ -156,7 +158,7 @@ class Ship {
      * @param string $type
      * @param array $options
      */
-    public function __construct($type, array $options = array()) {
+    public function __construct($type, array $options = []) {
         $matrix = static::matrixByType($type, $options['direction']);
         switch ($type) {
             case static::TYPE_CARRIER:
@@ -201,9 +203,9 @@ class Ship {
 	}
 	
 	public function getPos() {
-		return array(
+		return [
 			$this->_x, $this->_y
-		);
+		];
 	}
 	
 	public function getCoordinates() {
@@ -223,7 +225,7 @@ class Ship {
     }
 	
 	public function toArr() {
-		return array(
+		return [
 			'type' => $this->_type,
 		    'coordinates' => $this->getCoordinates(),
 			'matrix' => $this->_matrix,
@@ -235,6 +237,6 @@ class Ship {
             // 'ox' => 0,
             // 'oy' => 0,
             'osunk' => 0
-		);
+		];
 	}
 }

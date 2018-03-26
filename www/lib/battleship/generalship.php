@@ -9,11 +9,13 @@ require_once __DIR__ . '/ship.php';
  */
 class Generalship
 {
-    protected $_config = array();
-    protected $_data = array();
-    protected $_ships = array();
-    private $_board = array();
-    private $_shipsType = array();
+    protected $_config = [];
+    protected $_data = [];
+    protected $_ships = [];
+    private $_board = [];
+    private $_shipsType = [];
+    private $_totalShip = 0;
+    private $_pointBlackList = [];
 
     public function __construct(array $config)
     {
@@ -22,6 +24,10 @@ class Generalship
             for ($col = 0; $col < Board::$cols; $col++) {
                 $this->_board[$row][$col] = 0;
             }
+        }
+
+        foreach ($this->_config as $shipData) {
+            $this->_totalShip += $shipData['quantity'];
         }
     }
 
@@ -54,6 +60,10 @@ class Generalship
 
     public function initMatchTest2()
     {
+        if ($this->_totalShip >= 10) {
+            return $this->initMatchTest();
+        }
+
         if (empty($this->_data)) {
             foreach ($this->_config as $shipData) {
                 for ($count = 0; $count < $shipData['quantity']; $count++) {
@@ -90,20 +100,32 @@ class Generalship
                 ]
             ];
 
-            while($type = array_pop($this->_shipsType)) {
+            while($type1 = array_pop($this->_shipsType)) {
                 // Init config random
                 $configRandom = $constantConfigRandom[$count];
+                $type2 = array_pop($this->_shipsType);
 
-                $ship = $this->randomShip($type, null, $configRandom);
-                $this->_data[] = $ship;
-                $this->drawShip($this->_ships[$ship['x'] . '_' . $ship['y']]);
-
-                $type = array_pop($this->_shipsType);
-                if ($type) {
-                    $ship = $this->randomShip($type, $ship, $configRandom);
-                    $this->_data[] = $ship;
-                    $this->drawShip($this->_ships[$ship['x'] . '_' . $ship['y']]);
+                GENERATE_SHIP :
+                // Random ship 1
+                try {
+                    $ship1 = $this->randomShip($type1, null, $configRandom);
+                } catch (\Exception $ex) {
+                    goto GENERATE_SHIP;
                 }
+
+                if ($type2) {
+                    // Random ship 2
+                    try {
+                        $ship2 = $this->randomShip($type2, $ship1, $configRandom);
+                    } catch (\Exception $ex) {
+                        unset($this->_ships[$ship1['x'] . '_' . $ship1['y']]);
+                        goto GENERATE_SHIP;
+                    }
+                    $this->_data[] = $ship2;
+                    $this->drawShip($this->_ships[$ship2['x'] . '_' . $ship2['y']]);
+                }
+                $this->_data[] = $ship1;
+                $this->drawShip($this->_ships[$ship1['x'] . '_' . $ship1['y']]);
 
                 // Reset count
                 if ($count == 4) {
@@ -119,7 +141,11 @@ class Generalship
     private function randomShip($type, $shipNext = null, $configRandom = [])
     {
         $direcArr = Ship::returnDirecArr();
+        $countRandom = 1;
 
+        START_RANDOM :
+
+        // Get position for ship
         if (empty($configRandom)) {
             $x = rand(0, Board::$cols - 1);
             $y = rand(0, Board::$rows - 1);
@@ -145,16 +171,36 @@ class Generalship
             }
         }
 
+        if (in_array($x . '_' . $y, $this->_pointBlackList)) {
+            if ($countRandom == 3) {
+                throw new \Exception('Generate ship failed');
+            }
+
+            $countRandom++;
+            goto START_RANDOM;
+        }
+
         $ship = array(
             'type' => $type,
             'x' => $x,
             'y' => $y,
             'direction' => $direcArr[rand(0, count($direcArr) - 1)]
         );
-        $shipData = (new Ship($ship['type'], $ship))->toArr();
+        $shipObject = new Ship($ship['type'], $ship);
+        $shipData = $shipObject->toArr();
+        unset($shipObject);
 
-        if (!$this->checkAvailable($shipData)) {
-            return $this->randomShip($type, $shipNext, $configRandom);
+        if (!$this->checkAvailable($shipData, $configRandom)) {
+            unset($shipData);
+            $ship['direction'] = (intval(!$ship['direction']));
+            $shipObject = new Ship($ship['type'], $ship);
+            $shipData = $shipObject->toArr();
+            unset($shipObject);
+            if (!$this->checkAvailable($shipData, $configRandom)) {
+                unset($shipData);
+                $this->_pointBlackList[] = $x . '_' . $y;
+                goto START_RANDOM;
+            }
         }
 
         $this->_ships[$x . '_' . $y] = $shipData;
@@ -162,16 +208,27 @@ class Generalship
         return $ship;
     }
 
-    private function checkAvailable($shipData)
+    private function checkAvailable($shipData, $configRandom = [])
     {
+        $board = $this->_board;
+        if (!empty($configRandom)) {
+            $board = [];
+            for ($y = $configRandom['yMin']; $y <= $configRandom['yMax']; $y++) {
+                for ($x = $configRandom['xMin']; $x <= $configRandom['xMax']; $x++) {
+                    $board[$y][$x] = $this->_board[$y][$x];
+                }
+            }
+        }
+
+
         $y = $shipData['y'];
         foreach ($shipData['matrix'] as $row) {
             $x = $shipData['x'];
             foreach ($row as $cell) {
-                if (!isset($this->_board[$y][$x])) {
+                if (!isset($board[$y][$x])) {
                     return false;
                 }
-                if ($this->_board[$y][$x]) {
+                if ($board[$y][$x]) {
                     return false;
                 }
                 $x++;
