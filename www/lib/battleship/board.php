@@ -397,8 +397,7 @@ class Board {
         // 
         if (!empty($sunkShips)) {
             /* @TODO: max null hit shoot count? */;
-            $cnt = 0;
-            $maxCnt = 3;
+            $cnt = 0; $maxCnt = 2;
             $nullHitShootCells = array();
             $removedNullHitShootCells = array();
             foreach ($this->_hitShoots as $_k => $hitShoot) {
