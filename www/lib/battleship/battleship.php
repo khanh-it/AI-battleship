@@ -3,9 +3,8 @@
 require_once('board.php');
 
 //
-define('DEBUG', false);
 define('PLAYER_ID', getenv('AI_NAME') ?: 'ea_team_no1');
-define('PRODUCTION', PLAYER_ID === 'ea_team_no1');
+define('DEBUG', PLAYER_ID === 'ea_team_no1');
 
 /**
  * Class for working with game engine!
@@ -203,7 +202,7 @@ class Battleship {
         // Save (replace) data
         $gameID = $this->_gameID();
 		$filename = "{$this->_data_dir}{$gameID}.json";
-        file_put_contents($filename, @json_encode($data, PRODUCTION ? null : JSON_PRETTY_PRINT));
+        file_put_contents($filename, @json_encode($data, DEBUG ? null : JSON_PRETTY_PRINT));
         return $this;
     }
     
@@ -284,7 +283,7 @@ class Battleship {
 	        $coordinates[] = array($shoot['x'], $shoot['y']);
 	    }
 	    $resData = array('coordinates' => $coordinates);
-	    
+	    // Debug
 	    if (count($coordinates) > 1) {
 	        $this->debug('shoot', 'turn_' . $data['turn'] . '#maxShots_' . $data['maxShots'] . '#coordinates' . @json_encode($coordinates));
         }
@@ -332,9 +331,11 @@ class Battleship {
      * @return string
 	 */
 	public function debug($label, $info) {
-		$parts = explode('.', (string)microtime(true));
-		$key = date('H:i:s:') . $parts[1];
-		$this->data['DEBUG'][$label][$key] = $info;
+	    if (DEBUG) {
+	        $parts = explode('.', (string)microtime(true));
+	        $key = date('H:i:s:') . $parts[1];
+	        $this->data['DEBUG'][$label][$key] = $info;
+	    }
 	    return $this;
 	}
 

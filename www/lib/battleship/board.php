@@ -267,8 +267,7 @@ class Board {
                 }
             }
             if ($maxShoots > 1) {
-                $battleship = static::battleshipInst();
-                $battleship->debug('maxShoots2nd', "{$maxShoots}#{$maxShootsStr}");
+                static::battleshipInst()->debug('maxShoots2nd', "{$maxShoots}#{$maxShootsStr}");
             }
         }
         return $return;
@@ -394,7 +393,6 @@ class Board {
      *  Neu, van con hit cell nam ngoai vi tri tau --> chac 100% la van con tau gan ben.
      */
     protected function _notifyWillFindNextShip($data, $key) {
-        $battleship = static::battleshipInst();
         $sunkShips = (array)$data['sunkShips'];
         // 
         if (!empty($sunkShips)) {
@@ -421,7 +419,7 @@ class Board {
                 foreach ($removedNullHitShootCells as $_k) {
                     unset($this->_hitShoots[$_k]);
                 }
-                $battleship->debug('notifyWillFindNextShip', "Org: " . implode(' | ', $nullHitShootCells) . " Removed: " . implode(' | ', $removedNullHitShootCells));
+                static::battleshipInst()->debug('notifyWillFindNextShip', "Org: " . implode(' | ', $nullHitShootCells) . " Removed: " . implode(' | ', $removedNullHitShootCells));
             }
         }
         //
@@ -481,7 +479,7 @@ class Board {
     }
     
     /**
-     * 
+     * @TODO
      */
     public function gameOver() {
         
@@ -667,7 +665,7 @@ class Board {
             $strBf = implode('|', array_keys($this->_hitShoots));
             $strAf = implode('|', array_keys($hitShoots));
             if ($strBf != $strAf) {
-                echo("_reorderHitShoots: \r\nBf: " . $strBf . "\r\nAf: " . $strAf . "\r\n");
+                static::battleshipInst()->debug('reorderHitShoots', "Bf: " . $strBf . " --- Af: " . $strAf);
             }
         }
         $this->_hitShoots = $hitShoots;
@@ -679,7 +677,6 @@ class Board {
      * 
      */
     protected function _reorderHitShoots2nd() {
-        $battleship = static::battleshipInst();
         $hitShoots = $this->_hitShoots;
         $reorderHitShoots = array();
         $containCells = array();
@@ -730,7 +727,7 @@ class Board {
                     $hitShoots[$_k] = null;
                 }
                 $this->_hitShoots = $hitShoots;
-                $battleship->debug('reorderHitShoots2nd', $DEBUG);
+                static::battleshipInst()->debug('reorderHitShoots2nd', $DEBUG);
             }
         }
         //
