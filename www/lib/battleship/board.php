@@ -64,9 +64,10 @@ class Board {
     protected $_opponentsShoots = array();
     
     /**
+     * @TODO
      * @var integer Maximun number of missed shoot per block
      */
-    protected $_shoots_per_block = 3;
+    protected $_shoots_per_block = 1;
 
     /**
      * @return Battleship
@@ -173,12 +174,12 @@ class Board {
     
     /**
      * @param array $data 
-     * @param bool $calByOurShips
      * @return interger
      */
-    protected function _shootCalMaxShoots($data, $calByOurShips = false) {
+    protected function _shootCalMaxShoots($data) {
         $maxShots = 1;
         // Vars
+        $shipsCnt = count($this->_ships);
         $sunkShipCnt = 0; // Number of ours ships was sunk
         $oSunkShipCnt = 0; // Number of opponent's ships was sunk
         foreach ($this->_ships as $ship) {
@@ -190,15 +191,12 @@ class Board {
             }
         }
         // Calculate based on ours ships
-        if ($calByOurShips) {
-            if ((count($this->_ships) - $sunkShipCnt) <= 2 /* @TODO: limit? */) {
-                $maxShots = intval($data['maxShots']) ?: $maxShots;
-            }
+        if (($shipsCnt - $sunkShipCnt) <= 2 /* @TODO: limit? */) {
+            $maxShots = intval($data['maxShots']) ?: $maxShots;
+        }
         // Calculate based on opponent's ships
-        } else {    
-            if ((count($this->_ships) - $oSunkShipCnt) <= 3 /* @TODO: limit? */) {
-                $maxShots = intval($data['maxShots']) ?: $maxShots;
-            }
+        if (($shipsCnt - $oSunkShipCnt) <= 3 /* @TODO: limit? */) {
+            $maxShots = intval($data['maxShots']) ?: $maxShots;
         }
         // #end
         //
@@ -211,10 +209,14 @@ class Board {
      * @return array
      */
     public function shoot($data) {
+        // Get, format input data
         $data = (array)$data;
+        // +++
+        $maxShots = $this->_shootCalMaxShoots($data);
+        // Return data
         $return = array();
+
         // Target mode [trace hit shoots]?
-        $maxShoots = $this->_shootCalMaxShoots($data);
         $hitShootCnt = 0;
         foreach ($this->_hitShoots as $_k => $val) {
             if (is_null($val) && is_null($this->_shoots[$_k])) {
@@ -222,17 +224,16 @@ class Board {
                 $return[] = array('x' => $col, 'y' => $row);
                 $hitShootCnt++;
             }
-            if ($hitShootCnt >= $maxShoots) {
+            if ($hitShootCnt >= $maxShots) {
                 break;
             }
-        }
+        } unset($hitShootCnt);
         // #end
-        //
-        if (empty($return)) {
-            $rowMin = null; $rowMax = null;
-            $colMin = null; $colMax = null;
-            $cells = array();
-            $oeCells = array(); // odd or even cells
+        // Hunt mode [random]
+        $maxShots -= count($return);
+        if ($maxShots > 0) {
+            // Cells by block
+            $oeCellsBlock = array();
             $block = $this->_calWillShootBlock();
             if (!empty($block)) {
                 list($blockRow, $blockCol) = $block;
@@ -240,34 +241,61 @@ class Board {
                 $colMin = ($blockCol * 4);
                 $rowMax = $rowMin + 4;
                 $colMax = $colMin + 4;
+                /* echo '<pre>$block '; var_dump(static::key($blockRow, $blockCol)); echo '</pre>';
+                 echo '<pre>$row/$col Min '; var_dump(static::key($rowMin, $colMin)); echo '</pre>';
+                 echo '<pre>$row/$col Max '; var_dump(static::key($rowMax, $colMax)); echo '</pre>';
+                 // die(); */
+                $this->_mapCell(function($row, $col, $key) use (&$oeCellsBlock) {
+                    if (is_null($this->_shoots[$key])) {
+                        $cell = array($row, $col, $key);
+                        // pairity
+                        if (($row + $col) % 2 == 0) { // even
+                            $oeCellsBlock[] = $cell;
+                            return false; // <-- break;
+                        }
+                    }
+                }, $rowMin, $colMin, $rowMax, $colMax);
             }
-            /* echo '<pre>$block '; var_dump(static::key($blockRow, $blockCol)); echo '</pre>';
-            echo '<pre>$row/$col Min '; var_dump(static::key($rowMin, $colMin)); echo '</pre>';
-            echo '<pre>$row/$col Max '; var_dump(static::key($rowMax, $colMax)); echo '</pre>';
-            // die(); */ 
+            // #end
+            // All cells
+            $cells = array();
+            $oeCells = array(); // odd or even cells
             $this->_mapCell(function($row, $col, $key) use (&$cells, &$oeCells) {
                 if (is_null($this->_shoots[$key])) {
-                    $cells[] = ($cell = array($row, $col, $key));
-                    // @TODO: pairity?
+                    $cell = array($row, $col, $key);
+                    // pairity
                     if (($row + $col) % 2 == 0) { // even
                         $oeCells[] = $cell;
+                        return;
                     }
+                    $cells[] = $cell; // odd
                 }
-            }, $rowMin, $colMin, $rowMax, $colMax);
-            $cells = empty($oeCells) ? $cells : $oeCells;
-            $maxShoots = $this->_shootCalMaxShoots($data, true);
-            $maxShootsStr = '';
-            for ($hitShootCnt = 0; $hitShootCnt < $maxShoots; $hitShootCnt++) {
-                $cell = $cells[$cellIdx = (rand(0, count($cells) - 1))];
+            });
+            //
+            $maxShotsStr = [];
+            for ($hitShootCnt = 0; $hitShootCnt < $maxShots; $hitShootCnt++) {
+                // Shoot random + parity in block
+                $cell = $oeCellsBlock[$cellIdx = (rand(0, count($oeCellsBlock) - 1))];
+                unset($oeCellsBlock[$cellIdx]); $oeCellsBlock = array_values($oeCellsBlock);
+                // Shoot random + parity in all cells remain
+                if (!$cell) {
+                    $cell = $oeCells[$cellIdx = (rand(0, count($oeCells) - 1))];
+                    unset($oeCells[$cellIdx]); $oeCells = array_values($oeCells);
+                }
+                // Shoot random in all cells remain
+                if (!$cell) {
+                    $cell = $cells[$cellIdx = (rand(0, count($cells) - 1))];
+                    unset($cells[$cellIdx]); $cells = array_values($cells);
+                }
+                //
                 if ($cell) {
                     list($_r, $_c) = $cell;
                     $return[] = array('x' => $_c, 'y' => $_r);
-                    $maxShootsStr .= ('|' . implode(':', array('x' => $_c, 'y' => $_r)));
-                    unset($cells[$cellIdx]);
+                    $maxShotsStr[] = implode(':', array('x' => $_c, 'y' => $_r));
                 }
             }
-            if ($maxShoots > 1) {
-                static::battleshipInst()->debug('maxShoots2nd', "{$maxShoots}#{$maxShootsStr}");
+            if (!empty($maxShotsStr)) {
+                static::battleshipInst()->debug('maxShots2nd', implode(' | ', $maxShotsStr));
             }
         }
         return $return;
@@ -396,8 +424,13 @@ class Board {
         $sunkShips = (array)$data['sunkShips'];
         // 
         if (!empty($sunkShips)) {
+            $cnt = 0;
             /* @TODO: max null hit shoot count? */;
-            $cnt = 0; $maxCnt = 2;
+            $maxCnt = 0; $shipsCnt = count($this->_ships);
+            if ($shipsCnt >= 8) { $maxCnt = 1; }
+            if ($shipsCnt >= 10) { $maxCnt = 2; }
+            if ($shipsCnt >= 12) { $maxCnt = 3; }
+            // #end
             $nullHitShootCells = array();
             $removedNullHitShootCells = array();
             foreach ($this->_hitShoots as $_k => $hitShoot) {
@@ -458,9 +491,7 @@ class Board {
         $this->_shoots[$key] += $isHit;
 
         // Case: ship(s) sunk
-        if (!empty($sunkShips)) {
-            $this->_notifySunkShips($data, $key);
-        }
+        $this->_notifySunkShips($data, $key);
         
         // Reorder priority of hit shoots
         $this->_reorderHitShoots($data, $key);
@@ -592,12 +623,11 @@ class Board {
             for ($bC = 0; $bC < count($this->_blocks[$bR]); $bC++) {
                 list($num, $cellsCnt) = $this->_numOfCellsShoot($bR, $bC, array('cells_count' => true)); // num of cells shoot
                 $lessShootPerBlock = ($num < $this->_shoots_per_block);
-                // Blocks from centers
                 if ($lessShootPerBlock) {
                     // Blocks from centers
                     if ($bC >= 1 && $bC <= 3) {
                         $shootBlocksCenter[] = array($bR, $bC);
-                    // Blocks from edge
+                    // Blocks from edges
                     } else {
                         $shootBlocksEdges[] = array($bR, $bC);
                     }
@@ -744,9 +774,10 @@ class Board {
         $notSunkShip = null;
         $oSunkCnt = 0;
         foreach ($this->_ships as $ship) {
-            $oSunkCnt += $ship['osunk'];
             if (!$ship['osunk']) {
                 $notSunkShip = $ship;
+            } else {
+                $oSunkCnt += 1;
             }
         }
         // Ds hit shoots 
@@ -759,7 +790,7 @@ class Board {
         // Chi su dung tin nang nay neu chi con 1 tau!
         $removedHitShoots = array();
         $availCells = array();
-        if (1 == (count($this->_ships) - $oSunkCnt) && count($hitCells)) {
+        if (((count($this->_ships) - $oSunkCnt) <= 1) && count($hitCells)) {
             $options = array('merge_cells' => true);
             $shipAvailCells = $this->_shipContainCells($hitCells, $notSunkShip, $options);
             $availCells = array_replace($availCells, $shipAvailCells);
