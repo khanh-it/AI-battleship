@@ -182,6 +182,14 @@ class Board {
         $shipsCnt = count($this->_ships);
         $sunkShipCnt = 0; // Number of ours ships was sunk
         $oSunkShipCnt = 0; // Number of opponent's ships was sunk
+        $limit = 3; /* @TODO: limit? */
+        if ($shipsCnt >= 9) {
+            $limit = 4;
+        }
+        if ($shipsCnt >= 12) {
+            $limit = 5;
+        }
+        // #end
         foreach ($this->_ships as $ship) {
             if ($ship['sunk']) {
                 $sunkShipCnt += 1;
@@ -191,11 +199,11 @@ class Board {
             }
         }
         // Calculate based on ours ships
-        if (($shipsCnt - $sunkShipCnt) <= 2 /* @TODO: limit? */) {
+        if (($shipsCnt - $sunkShipCnt) <= ($limit - 1)) {
             $maxShots = intval($data['maxShots']) ?: $maxShots;
         }
         // Calculate based on opponent's ships
-        if (($shipsCnt - $oSunkShipCnt) <= 3 /* @TODO: limit? */) {
+        if (($shipsCnt - $oSunkShipCnt) <= $limit) {
             $maxShots = intval($data['maxShots']) ?: $maxShots;
         }
         // #end
@@ -427,9 +435,8 @@ class Board {
             $cnt = 0;
             /* @TODO: max null hit shoot count? */;
             $maxCnt = 0; $shipsCnt = count($this->_ships);
-            if ($shipsCnt >= 8) { $maxCnt = 1; }
-            if ($shipsCnt >= 10) { $maxCnt = 2; }
-            if ($shipsCnt >= 12) { $maxCnt = 3; }
+            if ($shipsCnt >= 9) { $maxCnt = 1; }
+            if ($shipsCnt >= 12) { $maxCnt = 2; }
             // #end
             $nullHitShootCells = array();
             $removedNullHitShootCells = array();
