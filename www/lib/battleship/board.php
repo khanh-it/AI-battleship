@@ -498,7 +498,7 @@ class Board {
         $this->_reorderHitShoots2nd($data, $key);
         
         // Remove unnecessary hit shoots
-        $this->_removeUnnecessaryHitShoots($data, $key);
+        // $this->_removeUnnecessaryHitShoots($data, $key);
 
         // Decide to find next ship?
         $this->_notifyWillFindNextShip($data, $key);
