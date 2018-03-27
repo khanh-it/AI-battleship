@@ -4,7 +4,7 @@ require_once('board.php');
 
 //
 define('PLAYER_ID', getenv('AI_NAME') ?: 'ea_team_no1');
-define('DEBUG', PLAYER_ID === 'ea_team_no1');
+define('DEBUG', !(PLAYER_ID === 'ea_team_no1'));
 
 /**
  * Class for working with game engine!
