@@ -58,13 +58,16 @@ class Generalship
     public function initMatchTest()
     {
         if (empty($this->_data)) {
-            foreach ($this->_config as $shipData) {
-                for ($count = 0; $count < $shipData['quantity']; $count++) {
-                    $ship = $this->randomShip($shipData['type']);
-                    $this->_data[] = $ship;
-                    $this->drawShip($this->_ships[$ship['x'] . '_' . $ship['y']]);
-                }
+            shuffle($this->_shipsType);
+            shuffle($this->_shipsTypeDestroyer);
+
+            while($type = array_pop($this->_shipsType)) {
+                $ship = $this->randomShip($type);
+                $this->_data[] = $ship;
+                $this->drawShip($this->_ships[$ship['x'] . '_' . $ship['y']]);
             }
+
+            $this->randomShipDestroyer();
         }
 
         return $this->_data;
@@ -150,7 +153,7 @@ class Generalship
 
     public function initMatchTest2()
     {
-        if ($this->_totalShip >= 10) {
+        if ($this->_totalShip > 10) {
             return $this->initMatchTest();
         }
 
@@ -160,30 +163,41 @@ class Generalship
             $count = 1;
             $constantConfigRandom = [
                 1 => [
-                    'xMin' => 0,
-                    'xMax' => (Board::$cols / 2) - 1,
+                    'xMin' => 2,
+                    'xMax' => 5,
                     'yMin' => 0,
-                    'yMax' => (Board::$rows / 2) - 1
+                    'yMax' => Board::$rows - 1
                 ],
                 2 => [
-                    'xMin' => Board::$cols / 2,
-                    'xMax' => Board::$cols - 1,
+                    'xMin' => 6,
+                    'xMax' => 9,
                     'yMin' => 0,
-                    'yMax' => (Board::$rows / 2) - 1
+                    'yMax' => Board::$rows - 1
                 ],
                 3 => [
-                    'xMin' => 0,
-                    'xMax' => (Board::$cols / 2) - 1,
-                    'yMin' => Board::$rows / 2,
+                    'xMin' => 10,
+                    'xMax' => 13,
+                    'yMin' => 0,
                     'yMax' => Board::$rows - 1
                 ],
                 4 => [
-                    'xMin' => Board::$cols / 2,
-                    'xMax' => Board::$cols - 1,
-                    'yMin' => Board::$rows / 2,
+                    'xMin' => 14,
+                    'xMax' => 17,
+                    'yMin' => 0,
                     'yMax' => Board::$rows - 1
                 ]
             ];
+
+            $countShipType = count($this->_shipsType);
+            if (ceil($countShipType / 2) < 3) {
+                $constantConfigRandom[1]['xMax'] += 4;
+                $constantConfigRandom[2]['xMin'] += 4;
+                $constantConfigRandom[2]['xMax'] += 4;
+                $constantConfigRandom[3]['xMin'] = $constantConfigRandom[1]['xMin'];
+                $constantConfigRandom[3]['xMax'] = $constantConfigRandom[1]['xMax'];
+                $constantConfigRandom[4]['xMin'] = $constantConfigRandom[2]['xMin'];
+                $constantConfigRandom[4]['xMax'] = $constantConfigRandom[2]['xMax'];
+            }
 
             while($type1 = array_pop($this->_shipsType)) {
                 // Init config random
@@ -221,62 +235,74 @@ class Generalship
                 }
             }
 
-//            $count = 1;
-            $constantConfigRandom = [
-                1 => [
-                    'xMin' => 0,
-                    'xMax' => Board::$cols - 1,
-                    'yMin' => 0,
-                    'yMax' => 0
-                ],
-                2 => [
-                    'xMin' => 0,
-                    'xMax' => Board::$cols - 1,
-                    'yMin' => Board::$rows - 1,
-                    'yMax' => Board::$rows - 1
-                ],
-                3 => [
-                    'xMin' => 0,
-                    'xMax' => 0,
-                    'yMin' => 0,
-                    'yMax' => Board::$rows - 1
-                ],
-                4 => [
-                    'xMin' => Board::$cols - 1,
-                    'xMax' => Board::$cols - 1,
-                    'yMin' => 0,
-                    'yMax' => Board::$rows - 1
-                ]
-            ];
-            $constantConfigDirector = [
-                1 => 0,
-                2 => 0,
-                3 => 1,
-                4 => 1
-            ];
-            while($type = array_pop($this->_shipsTypeDestroyer)) {
-                // Init config random
-                $count = rand(1, 4);
-                $configRandom = $constantConfigRandom[$count];
-
-                GENERATE_SHIP_DESTROYER :
-                // Random ship 1
-                try {
-                    $ship = $this->randomShip($type, null, $configRandom, $constantConfigDirector[$count]);
-                } catch (\Exception $ex) {
-                    goto GENERATE_SHIP_DESTROYER;
-                }
-                $this->drawShip($this->_ships[$ship['x'] . '_' . $ship['y']]);
-                $this->_data[] = $ship;
-            }
+            $this->randomShipDestroyer();
         }
 
         return $this->_data;
     }
 
+    private function randomShipDestroyer()
+    {
+        $constantConfigRandom = [
+            3 => [
+                'xMin' => 0,
+                'xMax' => 0,
+                'yMin' => 0,
+                'yMax' => Board::$rows - 1
+            ],
+            4 => [
+                'xMin' => Board::$cols - 1,
+                'xMax' => Board::$cols - 1,
+                'yMin' => 0,
+                'yMax' => Board::$rows - 1
+            ],
+            1 => [
+                'xMin' => 0,
+                'xMax' => Board::$cols - 1,
+                'yMin' => 0,
+                'yMax' => 0
+            ],
+            2 => [
+                'xMin' => 0,
+                'xMax' => Board::$cols - 1,
+                'yMin' => Board::$rows - 1,
+                'yMax' => Board::$rows - 1
+            ],
+        ];
+        $constantConfigDirector = [
+            1 => 0,
+            2 => 0,
+            3 => 1,
+            4 => 1
+        ];
+        shuffle($this->_shipsType);
+        $countShipDestroy = count($this->_shipsTypeDestroyer);
+        while($type = array_pop($this->_shipsTypeDestroyer)) {
+            GENERATE_SHIP_DESTROYER :
+            // Init config random
+            if ($countShipDestroy > 4) {
+                $count = rand(1, 4);
+                $configRandom = $constantConfigRandom[$count];
+            } else {
+                $configRandom = reset($constantConfigRandom);
+                $count = key($constantConfigRandom);
+                unset($constantConfigRandom[$count]);
+            }
+
+            // Random ship 1
+            try {
+                $ship = $this->randomShip($type, null, $configRandom, $constantConfigDirector[$count]);
+            } catch (\Exception $ex) {
+                goto GENERATE_SHIP_DESTROYER;
+            }
+            $this->drawShip($this->_ships[$ship['x'] . '_' . $ship['y']]);
+            $this->_data[] = $ship;
+        }
+        return $this;
+    }
+
     private function randomShip($type, $shipNext = null, $configRandom = [], $director = null)
     {
-        $direcArr = Ship::returnDirecArr();
         $countRandom = 1;
 
         START_RANDOM :
@@ -320,7 +346,7 @@ class Generalship
             'type' => $type,
             'x' => $x,
             'y' => $y,
-            'direction' => $direcArr[rand(0, count($direcArr) - 1)]
+            'direction' => 1 // $direcArr[rand(0, count($direcArr) - 1)]
         );
 
         if (!is_null($director)) {
@@ -399,7 +425,9 @@ class Generalship
         foreach ($shipData['matrix'] as $row) {
             $x = $shipData['x'];
             foreach ($row as $cell) {
-                $this->_board[$y][$x] = 0;
+                if ($cell == 1) {
+                    $this->_board[$y][$x] = 0;
+                }
                 $x++;
             }
             $y++;
