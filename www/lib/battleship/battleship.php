@@ -4,7 +4,7 @@ require_once('board.php');
 
 //
 define('PLAYER_ID', getenv('AI_NAME') ?: 'ea_team_no1');
-define('DEBUG', !(PLAYER_ID === 'ea_team_no1'));
+define('DEBUG', !(PLAYER_ID == 'ea_team_no1'));
 
 /**
  * Class for working with game engine!
@@ -202,7 +202,7 @@ class Battleship {
         // Save (replace) data
         $gameID = $this->_gameID();
 		$filename = "{$this->_data_dir}{$gameID}.json";
-        file_put_contents($filename, @json_encode($data, DEBUG ? null : JSON_PRETTY_PRINT));
+		file_put_contents($filename, @json_encode($data, DEBUG ? JSON_PRETTY_PRINT : null));
         return $this;
     }
     
@@ -280,9 +280,10 @@ class Battleship {
 	        $shoots = array($shoots);
 	    }
 	    foreach ($shoots as $shoot) {
-	        $coordinates[] = array($shoot['x'], $shoot['y']);
+	        $key = Board::key($shoot['y'], $shoot['x']);
+	        $coordinates[$key] = array($shoot['x'], $shoot['y']);
 	    }
-	    $resData = array('coordinates' => $coordinates);
+	    $resData = array('coordinates' => array_values($coordinates));
 	    // Debug
 	    if (count($coordinates) > 1) {
 	        $this->debug('shoot', 'turn_' . $data['turn'] . '#maxShots_' . $data['maxShots'] . '#coordinates' . @json_encode($coordinates));
