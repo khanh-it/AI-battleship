@@ -232,7 +232,7 @@ class Board {
                 $return[] = array('x' => $col, 'y' => $row);
                 $hitShootCnt++;
             }
-            if ($hitShootCnt >= $maxShots) {
+            if ($hitShootCnt >= min($maxShots, 2)) {
                 break;
             }
         } unset($hitShootCnt);
